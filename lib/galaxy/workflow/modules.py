@@ -569,9 +569,10 @@ class ToolModule( WorkflowModule ):
     def from_dict( Class, trans, d, exact_tools=False, **kwds ):
         tool_id = d.get( 'content_id' ) or d.get( 'tool_id' )
         if tool_id is None:
-            raise exceptions.RequestParameterInvalidException( "No tool id could be located for step [%s]." % d )
+            raise exceptions.RequestParameterInvalidException("No content id could be located for for step [%s]" % d)
         tool_version = str( d.get( 'tool_version' ) )
-        module = super( ToolModule, Class ).from_dict( trans, d, tool_id=tool_id, tool_version=tool_version, exact_tools=exact_tools )
+        tool_hash = kwds.get( 'tool_hash', None )
+        module = super( ToolModule, Class ).from_dict( trans, d, tool_id=tool_id, tool_version=tool_version, exact_tools=exact_tools, tool_hash=tool_hash )
         module.post_job_actions = d.get( 'post_job_actions', {} )
         module.workflow_outputs = d.get( 'workflow_outputs', [] )
         if module.tool:
@@ -589,7 +590,8 @@ class ToolModule( WorkflowModule ):
     def from_workflow_step( Class, trans, step, **kwds ):
         tool_id = trans.app.toolbox.get_tool_id( step.tool_id ) or step.tool_id
         tool_version = step.tool_version
-        module = super( ToolModule, Class ).from_workflow_step( trans, step, tool_id=tool_id, tool_version=tool_version )
+        tool_hash = step.tool_hash
+        module = super( ToolModule, Class ).from_workflow_step( trans, step, tool_id=tool_id, tool_version=tool_version, tool_hash=tool_hash )
         module.workflow_outputs = step.workflow_outputs
         module.post_job_actions = {}
         for pja in step.post_job_actions:
@@ -619,7 +621,15 @@ class ToolModule( WorkflowModule ):
     def save_to_step( self, step ):
         super( ToolModule, self ).save_to_step( step )
         step.tool_id = self.tool_id
-        step.tool_version = self.get_version()
+        if self.tool:
+            step.tool_version = self.get_version()
+            step.tool_hash = self.tool.tool_hash
+            step.tool_inputs = self.tool.params_to_strings( self.state.inputs, self.trans.app )
+        else:
+            step.tool_version = None
+            step.tool_hash = None
+            step.tool_inputs = None
+        step.tool_errors = self.errors
         for k, v in self.post_job_actions.items():
             pja = self.__to_pja( k, v, step )
             self.trans.sa_session.add( pja )
