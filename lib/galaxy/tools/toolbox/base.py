@@ -81,6 +81,9 @@ class AbstractToolBox( object, Dictifiable, ManagesIntegratedToolPanelMixin ):
     def create_tool( self, config_file, repository_id=None, guid=None, **kwds ):
         raise NotImplementedError()
 
+    def create_dynamic_tool( self, dynamic_tool ):
+        raise NotImplementedError()
+
     def _init_tools_from_configs( self, config_filenames ):
         """ Read through all tool config files and initialize tools in each
         with init_tools_from_config below.
@@ -151,6 +154,18 @@ class AbstractToolBox( object, Dictifiable, ManagesIntegratedToolPanelMixin ):
                                         tool_path=tool_path,
                                         config_elems=config_elems )
             self._dynamic_tool_confs.append( shed_tool_conf_dict )
+
+    def _init_dynamic_tools( self ):
+        for dynamic_tool in self.app.dynamic_tool_manager.list_tools():
+            self.load_dynamic_tool( dynamic_tool )
+
+    def load_dynamic_tool( self, dynamic_tool ):
+        if not dynamic_tool.active:
+            return None
+
+        tool = self.create_dynamic_tool( dynamic_tool )
+        self.register_tool( tool )
+        return tool
 
     def load_item( self, elem, tool_path, panel_dict=None, integrated_panel_dict=None, load_panel_dict=True, guid=None, index=None, internal=False ):
         item_type = elem.tag

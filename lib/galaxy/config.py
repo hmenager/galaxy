@@ -754,6 +754,9 @@ class ConfiguresGalaxyMixin:
         from galaxy.managers.citations import CitationsManager
         self.citations_manager = CitationsManager( self )
 
+        from galaxy.managers.tools import DynamicToolManager
+        self.dynamic_tools_manager = DynamicToolManager( self )
+
         from galaxy import tools
         self.toolbox = tools.ToolBox( tool_configs, self.config.tool_path, self )
         self.reindex_tool_search()
