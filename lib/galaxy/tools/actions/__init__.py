@@ -460,6 +460,7 @@ class DefaultToolAction( object ):
             job.tool_version = tool.version
         except:
             job.tool_version = "1.0.0"
+        job.tool_hash = tool.tool_hash
         # FIXME: Don't need all of incoming here, just the defined parameters
         #        from the tool. We need to deal with tools that pass all post
         #        parameters to the command as a special case.
