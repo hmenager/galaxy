@@ -34,11 +34,13 @@ from galaxy.tools.parameters.basic import (BaseURLToolParameter,
 from galaxy.tools.parameters.grouping import Conditional, ConditionalWhen, Repeat, Section, UploadDataset
 from galaxy.tools.parameters.input_translation import ToolInputTranslator
 from galaxy.tools.parameters.validation import LateValidationError
+from galaxy.tools.parameters.wrapped_json import json_wrap
 from galaxy.tools.test import parse_tests
 from galaxy.tools.parser import (
     get_tool_source,
     get_tool_source_from_representation,
 )
+from galaxy.tools import expressions
 from galaxy.tools.parser.xml import XmlPageSource
 from galaxy.tools.toolbox import AbstractToolBox
 from galaxy.util import rst_to_html, string_as_bool
@@ -266,12 +268,14 @@ class ToolOutput( ToolOutputBase ):
       (format, metadata_source, parent)
     """
 
-    dict_collection_visible_keys = ( 'name', 'format', 'label', 'hidden' )
+    dict_collection_visible_keys = ( 'name', 'format', 'label', 'hidden', 'output_type' )
 
     def __init__( self, name, format=None, format_source=None, metadata_source=None,
                   parent=None, label=None, filters=None, actions=None, hidden=False,
                   implicit=False ):
         super( ToolOutput, self ).__init__( name, label=label, filters=filters, hidden=hidden )
+        self.output_type = "data"
+
         self.format = format
         self.format_source = format_source
         self.metadata_source = metadata_source
@@ -310,6 +314,26 @@ class ToolOutput( ToolOutputBase ):
         return as_dict
 
 
+class ToolExpressionOutput( ToolOutputBase ):
+
+    def __init__( self, name, output_type, from_expression,
+                  label=None, filters=None, actions=None, hidden=False ):
+        super( ToolExpressionOutput, self ).__init__( name, label=label, filters=filters, hidden=hidden )
+        self.output_type = output_type  # JSON type...
+        self.from_expression = from_expression
+        self.format = "expression.json"  # galaxy.datatypes.text.ExpressionJson.file_ext
+
+        self.format_source = None
+        self.metadata_source = None
+        self.parent = None
+        self.actions = actions
+
+        # Initialize default values
+        self.change_format = []
+        self.implicit = False
+        self.from_work_dir = None
+
+
 class ToolOutputCollection( ToolOutputBase ):
     """
     Represents a HistoryDatasetCollectionAssociation of output datasets produced
@@ -340,6 +364,8 @@ class ToolOutputCollection( ToolOutputBase ):
         inherit_metadata=False
     ):
         super( ToolOutputCollection, self ).__init__( name, label=label, filters=filters, hidden=hidden )
+        self.output_type = "collection"
+
         self.collection = True
         self.default_format = default_format
         self.structure = structure
@@ -2703,6 +2729,71 @@ class OutputParameterJSONTool( Tool ):
         out.close()
 
 
+class ExpressionTool( Tool ):
+    tool_type = 'expression'
+    EXPRESSION_INPUTS_NAME = "_expression_inputs_.json"
+
+    def parse_command( self, tool_source ):
+        self.command = expressions.EXPRESSION_SCRIPT_CALL
+        self.interpreter = None
+        self._expression = tool_source.parse_expression().strip()
+
+    def parse_outputs( self, tool_source ):
+        # Setup self.outputs and self.output_collections
+        super( ExpressionTool, self ).parse_outputs( tool_source )
+
+        # Validate these outputs for expression tools.
+        if len(self.output_collections) != 0:
+            message = "Expression tools may not declare output collections at this time."
+            raise Exception(message)
+        for output in self.outputs.values():
+            if not hasattr(output, "from_expression"):
+                message = "Expression tools may not declare output datasets at this time."
+                raise Exception(message)
+
+    def exec_before_job( self, app, inp_data, out_data, param_dict=None ):
+        super( ExpressionTool, self ).exec_before_job( app, inp_data, out_data, param_dict=param_dict )
+        local_working_directory = param_dict["__local_working_directory__"]
+        expression_inputs_path = os.path.join(local_working_directory, ExpressionTool.EXPRESSION_INPUTS_NAME)
+
+        outputs = []
+        for i, ( out_name, data ) in enumerate( out_data.iteritems() ):
+            output_def = self.outputs[ out_name ]
+            wrapped_data = param_dict.get( out_name )
+            file_name = str( wrapped_data )
+
+            outputs.append(dict(
+                name=out_name,
+                from_expression=output_def.from_expression,
+                path=file_name,
+            ))
+
+        if param_dict is None:
+            raise Exception("Internal error - param_dict is empty.")
+
+        job = {}
+        json_wrap(self.inputs, param_dict, job)
+        expression_inputs = {
+            'job': job,
+            'script': self._expression,
+            'outputs': outputs,
+        }
+        expressions.write_evalute_script(local_working_directory)
+        with open(expression_inputs_path, "w") as f:
+            json.dump( expression_inputs, f )
+
+    def parse_environment_variables( self, tool_source ):
+        """ Setup environment variable for inputs file.
+        """
+        environmnt_variables_raw = super( ExpressionTool, self ).parse_environment_variables( tool_source )
+        expression_script_inputs = dict(
+            name="GALAXY_EXPRESSION_INPUTS",
+            template=ExpressionTool.EXPRESSION_INPUTS_NAME,
+        )
+        environmnt_variables_raw.append(expression_script_inputs)
+        return environmnt_variables_raw
+
+
 class DataSourceTool( OutputParameterJSONTool ):
     """
     Alternate implementation of Tool for data_source tools -- those that
@@ -2907,7 +2998,7 @@ class DataManagerTool( OutputParameterJSONTool ):
 
 # Populate tool_type to ToolClass mappings
 tool_types = {}
-for tool_class in [ Tool, SetMetadataTool, OutputParameterJSONTool,
+for tool_class in [ Tool, SetMetadataTool, OutputParameterJSONTool, ExpressionTool,
                     DataManagerTool, DataSourceTool, AsyncDataSourceTool,
                     DataDestinationTool ]:
     tool_types[ tool_class.tool_type ] = tool_class
