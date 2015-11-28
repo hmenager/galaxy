@@ -50,6 +50,7 @@ NODE_ICONS = {
     'tool': 'fa-wrench',
     'data_input': 'fa-file-o',
     'data_collection_input': 'fa-folder-o',
+    'subworkflow': 'fa-sitemap fa-rotate-270',
     'pause': 'fa-pause'
 }
 
@@ -530,6 +531,22 @@ EditorFormView = Backbone.View.extend({
                    }
                });
             });
+            $("p.workflow-entry").each(function() {
+                var $this = $(this);
+                var workflowId = $this.data("workflow-id");
+                var subworkflowLink = $('<i class="fa fa-link" style="margin-left: 4px;">').click(function() {
+                    self.add_node_for_subworkflow(workflowId, $this.text() );
+                });
+                $this.after(subworkflowLink);
+                /*
+                // TODO: Implement copy_into_workflow...
+                var embedLink = $('<i class="fa fa-copy" style="margin-left: 4px;">').click(function() {
+                    // TODO: Prompt - this might ruin a workflow
+                    workflow_view.copy_into_workflow(workflowId, $this.text() );
+                });
+                $this.after(embedLink);
+                */
+            });
 
             // Rename async.
             async_save_text("workflow-name", "workflow-name", self.urls.rename_async, "new_name");
@@ -596,7 +613,7 @@ EditorFormView = Backbone.View.extend({
         // Add a new step to the workflow by tool id
         add_node_for_subworkflow: function ( id, title ) {
             node = this.workflow.create_node( 'subworkflow', title, id );
-            this._moduleInitAjax(node, { type: "subworkflow", subworkflow_id: id, "_": "true" });
+            this._moduleInitAjax(node, { type: "subworkflow", content_id: id, "_": "true" });
         },
 
         add_node_for_module: function ( type, title ) {
