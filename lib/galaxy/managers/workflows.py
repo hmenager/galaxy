@@ -24,6 +24,7 @@ from galaxy.workflow.steps import attach_ordered_steps
 from galaxy.workflow.modules import module_factory, is_tool_module_type, ToolModule
 from galaxy.tools.parameters.basic import DataToolParameter, DataCollectionToolParameter
 from galaxy.tools.parameters import visit_input_values
+from galaxy.tools.cwl import workflow_proxy
 from galaxy.web import url_for
 
 log = logging.getLogger( __name__ )
@@ -275,6 +276,10 @@ class WorkflowContentsManager(UsesAnnotations):
     def _workflow_from_dict(self, trans, data, name):
         if isinstance(data, string_types):
             data = json.loads(data)
+        if "src" in data:
+            assert data["src"] == "path"
+            wf_proxy = workflow_proxy(data["path"])
+            data = wf_proxy.to_dict()
 
         # Create new workflow from source data
         workflow = model.Workflow()
