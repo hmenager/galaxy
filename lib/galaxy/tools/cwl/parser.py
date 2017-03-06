@@ -28,7 +28,7 @@ log = logging.getLogger(__name__)
 JOB_JSON_FILE = ".cwl_job.json"
 SECONDARY_FILES_EXTRA_PREFIX = "__secondary_files__"
 
-
+DOCKER_REQUIREMENT = "DockerRequirement"
 SUPPORTED_TOOL_REQUIREMENTS = [
     "CreateFileRequirement",
     "DockerRequirement",
@@ -71,10 +71,14 @@ def load_job_proxy(job_directory, strict_cwl_validation=True):
 def to_cwl_tool_object(tool_path, strict_cwl_validation=True):
     proxy_class = None
     cwl_tool = _schema_loader(strict_cwl_validation).tool(path=tool_path)
+
     if isinstance(cwl_tool, int):
         raise Exception("Failed to load tool.")
 
     raw_tool = cwl_tool.tool
+    # Apply Galaxy hacks to CWL tool representation to bridge semantic differences
+    # between Galaxy and cwltool.
+    _hack_cwl_requirements(cwl_tool)
     check_requirements(raw_tool)
     if "class" not in raw_tool:
         raise Exception("File does not declare a class, not a valid Draft 3+ CWL tool.")
@@ -105,6 +109,22 @@ def to_cwl_workflow_object(workflow_path, strict_cwl_validation=None):
 def _schema_loader(strict_cwl_validation):
     target_schema_loader = schema_loader if strict_cwl_validation else non_strict_schema_loader
     return target_schema_loader
+
+
+def _hack_cwl_requirements(cwl_tool):
+    raw_tool = cwl_tool.tool
+    if "requirements" in raw_tool:
+        requirements = raw_tool["requirements"]
+        move_to_hint = None
+        for i, r in enumerate(requirements):
+            if r["class"] == DOCKER_REQUIREMENT:
+                move_to_hint = i
+        if move_to_hint is not None:
+            hint = requirements.pop(move_to_hint)
+            if "hints" not in raw_tool:
+                raw_tool["hints"] = []
+            raw_tool["hints"].append(hint)
+    cwl_tool.requirements = raw_tool.get("requirements", [])
 
 
 def check_requirements(rec, tool=True):
@@ -191,10 +211,6 @@ class CommandLineToolProxy(ToolProxy):
         rval = []
         if not rval and schema["type"] == "record":
             for output in schema["fields"]:
-                # output_type = output.get("type", None)
-                # if output_type != "File":
-                #     template = "Unhandled output type [%s] encountered."
-                #     raise Exception(template % output_type)
                 rval.append(_simple_field_to_output(output))
 
         return rval
@@ -246,7 +262,10 @@ class JobProxy(object):
                 self._output_callback,
                 basedir=self._job_directory,
                 select_resources=self._select_resources,
-                use_container=False
+                outdir=os.path.join(self._job_directory, "cwloutput"),
+                tmpdir=os.path.join(self._job_directory, "cwltmp"),
+                stagedir=os.path.join(self._job_directory, "cwlstagedir"),
+                use_container=False,
             ))
             self._is_command_line_job = hasattr(self._cwl_job, "command_line")
 
