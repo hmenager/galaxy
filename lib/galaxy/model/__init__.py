@@ -769,6 +769,8 @@ class Job( object, JobLike, Dictifiable ):
             # System level details that only admins should have.
             rval['external_id'] = self.job_runner_external_id
             rval['command_line'] = self.command_line
+            rval['cwl_command_state'] = self.cwl_command_state
+            rval['cwl_command_state_version'] = self.cwl_command_state_version
 
         if view == 'element':
             param_dict = dict( [ ( p.name, p.value ) for p in self.parameters ] )
@@ -2069,6 +2071,19 @@ class DatasetInstance( object ):
         """Detects whether there is any data"""
         return self.dataset.has_data()
 
+    def get_cwl_filename( self ):
+        return self.dataset.cwl_filename
+
+    def set_cwl_filename( self, cwl_filename ):
+        # This should be a write-once property intrinsic to the underlying
+        # dataset for pure CWL workflows. We may wish to revisit that for
+        # usability longer term.
+        if self.dataset.cwl_filename is not None:
+            raise Exception("Underlying dataset already has a cwlfilename set.")
+        self.dataset.cwl_filename = cwl_filename
+
+    cwl_filename = property( get_cwl_filename, set_cwl_filename )
+
     def get_raw_data( self ):
         """Returns the full data. To stream it open the file_name and read/write as needed"""
         return self.datatype.get_raw_data( self )
@@ -3244,6 +3259,10 @@ class DatasetCollection( object, Dictifiable, UsesAnnotations ):
             self.populated_state = DatasetCollection.populated_states.NEW
 
     @property
+    def allow_implicit_mapping(self):
+        return self.collection_type != "record"
+
+    @property
     def populated( self ):
         top_level_populated = self.populated_state == DatasetCollection.populated_states.OK
         if top_level_populated and self.has_subcollections:
@@ -3836,12 +3855,14 @@ class WorkflowStep( object ):
         self.tool_inputs = None
         self.tool_errors = None
         self.position = None
+        self.inputs = []
         self.input_connections = []
         self.config = None
         self.label = None
         self.uuid = uuid4()
         self.workflow_outputs = []
         self._input_connections_by_name = None
+        self._inputs_by_name = None
 
     @property
     def unique_workflow_outputs(self):
@@ -3877,6 +3898,12 @@ class WorkflowStep( object ):
             self.setup_input_connections_by_name()
         return self._input_connections_by_name
 
+    @property
+    def inputs_by_name(self):
+        if self._inputs_by_name is None:
+            self.setup_inputs_by_name()
+        return self._inputs_by_name
+
     def setup_input_connections_by_name(self):
         # Ensure input_connections has already been set.
 
@@ -3888,6 +3915,17 @@ class WorkflowStep( object ):
                 input_connections_by_name[input_name] = []
             input_connections_by_name[input_name].append(conn)
         self._input_connections_by_name = input_connections_by_name
+
+    def setup_inputs_by_name(self):
+        # Ensure input_connections has already been set.
+
+        # Make connection information available on each step by input name.
+        inputs_by_name = {}
+        for step_input in self.inputs:
+            input_name = step_input.name
+            assert input_name not in inputs_by_name
+            inputs_by_name[input_name] = step_input
+        self._inputs_by_name = inputs_by_name
 
     def create_or_update_workflow_output(self, output_name, label, uuid):
         output = self.workflow_output_for(output_name)
@@ -3941,6 +3979,19 @@ class WorkflowStep( object ):
 
     def log_str(self):
         return "WorkflowStep[index=%d,type=%s]" % (self.order_index, self.type)
+
+
+class WorkflowStepInput( object ):
+
+    default_merge_type = "merge_flattened"
+    default_scatter_type = "dotproduct"
+
+    def __init__( self ):
+        self.id = None
+        self.name = None
+        self.default_value = None
+        self.merge_type = self.default_merge_type
+        self.scatter_type = self.default_scatter_type
 
 
 class WorkflowStepConnection( object ):
