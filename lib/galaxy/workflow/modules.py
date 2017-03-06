@@ -58,6 +58,7 @@ class WorkflowModule( object ):
 
     def __init__( self, trans, content_id=None, **kwds ):
         self.trans = trans
+        self.app = trans.app
         self.content_id = content_id
         self.state = DefaultToolState()
 
@@ -893,23 +894,26 @@ class ToolModule( WorkflowModule ):
             # Connect up
             def callback( input, prefixed_name, **kwargs ):
                 replacement = NO_REPLACEMENT
-                if isinstance( input, DataToolParameter ) or isinstance( input, DataCollectionToolParameter ):
-                    if iteration_elements and prefixed_name in iteration_elements:
-                        if isinstance( input, DataToolParameter ):
-                            # Pull out dataset instance from element.
-                            replacement = iteration_elements[ prefixed_name ].dataset_instance
-                            if hasattr(iteration_elements[ prefixed_name ], u'element_identifier') and iteration_elements[ prefixed_name ].element_identifier:
-                                replacement.element_identifier = iteration_elements[ prefixed_name ].element_identifier
-                        else:
-                            # If collection - just use element model object.
-                            replacement = iteration_elements[ prefixed_name ]
+                if iteration_elements and prefixed_name in iteration_elements:
+                    if not isinstance( input, DataCollectionToolParameter ):
+                        # Pull out dataset instance from element.
+                        replacement = iteration_elements[ prefixed_name ].dataset_instance
+                        if hasattr(iteration_elements[ prefixed_name ], u'element_identifier') and iteration_elements[ prefixed_name ].element_identifier:
+                            replacement.element_identifier = iteration_elements[ prefixed_name ].element_identifier
                     else:
-                        replacement = progress.replacement_for_tool_input( step, input, prefixed_name )
+                        # If collection - just use element model object.
+                        replacement = iteration_elements[ prefixed_name ]
                 else:
-                    replacement = progress.replacement_for_tool_input( step, input, prefixed_name )
+                    # TODO: I guess never exapnd in progress - only exapnd up here!
+                    replacement = progress.replacement_for_tool_input( step, input, prefixed_name, expand_expressions=True )
 
                 if replacement is not NO_REPLACEMENT:
                     found_replacement_keys.add(prefixed_name)
+
+                is_data = isinstance( input, DataToolParameter ) or isinstance( input, DataCollectionToolParameter )
+                if not is_data and getattr( replacement, "history_content_type", None ) == "dataset":
+                    with open( replacement.file_name, "r" ) as f:
+                        replacement = loads(f.read())
 
                 return replacement
 
@@ -984,19 +988,32 @@ class ToolModule( WorkflowModule ):
         collections_to_match = matching.CollectionsToMatch()
 
         def callback( input, prefixed_name, **kwargs ):
+            step_input = step.inputs_by_name[ prefixed_name ]
+            scatter_type = "dotproduct"
+            if step_input:
+                scatter_type = step_input.scatter_type
+            assert scatter_type == "dotproduct"
+
             is_data_param = isinstance( input, DataToolParameter )
             if is_data_param and not input.multiple:
                 data = progress.replacement_for_tool_input( step, input, prefixed_name )
-                if isinstance( data, model.HistoryDatasetCollectionAssociation ):
+                if hasattr( data, "collection" ):
                     collections_to_match.add( prefixed_name, data )
-
+                return
             is_data_collection_param = isinstance( input, DataCollectionToolParameter )
             if is_data_collection_param and not input.multiple:
                 data = progress.replacement_for_tool_input( step, input, prefixed_name )
                 history_query = input._history_query( self.trans )
-                subcollection_type_description = history_query.can_map_over( data )
-                if subcollection_type_description:
-                    collections_to_match.add( prefixed_name, data, subcollection_type=subcollection_type_description.collection_type )
+                if hasattr( data, "collection" ):
+                    subcollection_type_description = history_query.can_map_over( data )
+                    if subcollection_type_description:
+                        collections_to_match.add( prefixed_name, data, subcollection_type=subcollection_type_description.collection_type )
+                return
+
+            data = progress.replacement_for_tool_input( step, input, prefixed_name )
+            if data is not NO_REPLACEMENT:
+                if hasattr( data, "collection" ):
+                    collections_to_match.add( prefixed_name, data )
 
         visit_input_values( tool.inputs, step.state.inputs, callback )
         return collections_to_match
@@ -1124,6 +1141,30 @@ def load_module_sections( trans ):
     return module_sections
 
 
+class EphemeralCollection(object):
+    """Interface for collecting datasets together in workflows and treating as collections.
+
+    These aren't real collections in the database - just datasets groupped together
+    in someway by workflows for passing data around as collections.
+    """
+
+    # Used to distinguish between datasets and collections frequently.
+    ephemeral = True
+    history_content_type = "dataset_collection"
+    name = "Dynamically generated collection"
+
+    def __init__(self, collection, history):
+        self.collection = collection
+        self.history = history
+
+        hdca = model.HistoryDatasetCollectionAssociation(
+            collection=collection,
+            history=history,
+        )
+        hdca.history.add_dataset_collection( hdca )
+        self.persistent_object = hdca
+
+
 class DelayedWorkflowEvaluation(Exception):
 
     def __init__(self, why=None):
@@ -1158,6 +1199,7 @@ class WorkflowModuleInjector(object):
         step.upgrade_messages = {}
 
         # Make connection information available on each step by input name.
+        step.setup_inputs_by_name()
         step.setup_input_connections_by_name()
 
         # Populate module.

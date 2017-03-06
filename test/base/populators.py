@@ -1,12 +1,16 @@
 import json
+import os.path
 import time
 
 from operator import itemgetter
 
 import requests
+import yaml
 
 from pkg_resources import resource_string
-from six import StringIO
+from six import iteritems, StringIO
+
+from galaxy.tools.cwl.util import output_properties
 
 from base import api_asserts
 from base.workflows_format_2 import (
@@ -53,6 +57,105 @@ def skip_without_tool( tool_id ):
     return method_wrapper
 
 
+# Now this is the newer than the planemo version of this function as of 2017/7/18
+def galactic_job_json(job, test_data_directory, upload_func, collection_create_func):
+    datasets = []
+    dataset_collections = []
+
+    def upload_file(file_path):
+        if not os.path.isabs(file_path):
+            file_path = os.path.join(test_data_directory, file_path)
+        _ensure_file_exists(file_path)
+        upload_response = upload_func(FileUploadTarget(file_path))
+        dataset = upload_response["outputs"][0]
+        datasets.append((dataset, file_path))
+        dataset_id = dataset["id"]
+        return {"src": "hda", "id": dataset_id}
+
+    def upload_object(the_object):
+        upload_response = upload_func(ObjectUploadTarget(the_object))
+        dataset = upload_response["outputs"][0]
+        datasets.append((dataset, the_object))
+        dataset_id = dataset["id"]
+        return {"src": "hda", "id": dataset_id}
+
+    def replacement_item(value, force_to_file=False):
+        is_dict = isinstance(value, dict)
+        is_file = is_dict and value.get("class", None) == "File"
+
+        if force_to_file:
+            if is_file:
+                return replacement_file(value)
+            else:
+                return upload_object(value)
+
+        if isinstance(value, list):
+            return replacement_list(value)
+        elif not isinstance(value, dict):
+            return value
+
+        if is_file:
+            return replacement_file(value)
+        else:
+            return replacement_record(value)
+
+    def replacement_file(value):
+        file_path = value.get("location", None) or value.get("path", None)
+        if file_path is None:
+            return value
+
+        return upload_file(file_path)
+
+    def replacement_list(value):
+        collection_element_identifiers = []
+        for i, item in enumerate(value):
+            dataset = replacement_item(item, force_to_file=True)
+            collection_element = dataset.copy()
+            collection_element["name"] = str(i)
+            collection_element_identifiers.append(collection_element)
+
+        collection = collection_create_func(collection_element_identifiers, "list")
+        dataset_collections.append(collection)
+        hdca_id = collection["id"]
+        return {"src": "hdca", "id": hdca_id}
+
+    def replacement_record(value):
+        collection_element_identifiers = []
+        for record_key, record_value in value.items():
+            if record_value.get("class") != "File":
+                raise NotImplementedError()
+
+            dataset = upload_file(record_value["location"])
+            collection_element = dataset.copy()
+            collection_element["name"] = record_key
+            collection_element_identifiers.append(collection_element)
+
+        collection = collection_create_func(collection_element_identifiers, "record")
+        dataset_collections.append(collection)
+        hdca_id = collection["id"]
+        return {"src": "hdca", "id": hdca_id}
+
+    replace_keys = {}
+    for key, value in iteritems(job):
+        replace_keys[key] = replacement_item(value)
+
+    job.update(replace_keys)
+    return job, datasets
+
+
+def _ensure_file_exists(file_path):
+    if not os.path.exists(file_path):
+        template = "File [%s] does not exist - parent directory [%s] does %sexist, cwd is [%s]"
+        parent_directory = os.path.dirname(file_path)
+        message = template % (
+            file_path,
+            parent_directory,
+            "" if os.path.exists(parent_directory) else "not ",
+            os.getcwd(),
+        )
+        raise Exception(message)
+
+
 # Deprecated mixin, use dataset populator instead.
 # TODO: Rework existing tests to target DatasetPopulator in a setup method instead.
 class TestsDatasets:
@@ -73,19 +176,87 @@ class TestsDatasets:
         return DatasetPopulator( self.galaxy_interactor ).run_tool_payload( tool_id, inputs, history_id, **kwds )
 
 
+class CwlToolRun( object ):
+
+    def __init__( self, history_id, run_response ):
+        self.history_id = history_id
+        self.run_response = run_response
+
+    @property
+    def job_id( self ):
+        return self.run_response[ "jobs" ][ 0 ][ "id" ]
+
+    def output(self, output_index):
+        return self.run_response["outputs"][output_index]
+
+    def output_collection(self, output_index):
+        return self.run_response["output_collections"][output_index]
+
+
+class CwlWorkflowRun( object ):
+
+    def __init__(self, dataset_populator, history_id, workflow_id, invocation_id):
+        self.dataset_populator = dataset_populator
+        self.history_id = history_id
+        self.workflow_id = workflow_id
+        self.invocation_id = invocation_id
+
+    def get_output_as_object(self, output_name):
+        invocation_response = self.dataset_populator._get("workflows/%s/invocations/%s" % (self.invocation_id, self.workflow_id))
+        api_asserts.assert_status_code_is( invocation_response, 200 )
+        invocation = invocation_response.json()
+
+        def dataset_to_json(dataset_details):
+            ext = dataset_details["file_ext"]
+            assert dataset_details["state"] == "ok"
+            print(dataset_details)
+            if ext == "expression.json":
+                print("hid is %s" % dataset_details["hid"])
+                content = self.dataset_populator.get_history_dataset_content(self.history_id, dataset_id=dataset_details["id"])
+                print("content is %s" % content)
+                return json.loads(content)
+            else:
+                content = self.dataset_populator.get_history_dataset_content(self.history_id, dataset_id=dataset_details["id"])
+                return output_properties(content=content)
+
+        if output_name in invocation["outputs"]:
+            dataset = invocation["outputs"][output_name]
+            dataset_id = dataset["id"]
+            dataset_details = self.dataset_populator.get_history_dataset_details(self.history_id, dataset_id=dataset_id)
+            assert dataset_details["id"] == dataset_id
+            return dataset_to_json(dataset_details)
+        elif output_name in invocation["output_collections"]:
+            collection = invocation["output_collections"][output_name]
+            collection_details = self.dataset_populator.get_history_collection_details(self.history_id, content_id=collection["id"])
+            print(collection_details)
+            if collection_details["collection_type"] == "list":
+                rval = []
+                for element in collection_details["elements"]:
+                    rval.append(dataset_to_json(element["object"]))
+            else:
+                raise NotImplementedError()
+            return rval
+        else:
+            raise Exception("Unknown output [%s] encountered for invocation [%s]" % (output_name, invocation))
+
+
 class BaseDatasetPopulator( object ):
     """ Abstract description of API operations optimized for testing
     Galaxy - implementations must implement _get and _post.
     """
 
     def new_dataset( self, history_id, content='TestData123', wait=False, **kwds ):
+        run_response = self.new_dataset_request(history_id, content=content, wait=wait, **kwds)
+        return run_response["outputs"][0]
+
+    def new_dataset_request( self, history_id, content='TestData123', wait=False, **kwds ):
         payload = self.upload_payload( history_id, content, **kwds )
         run_response = self._post( "tools", data=payload ).json()
         if wait:
             job = run_response["jobs"][0]
             self.wait_for_job(job["id"])
             self.wait_for_history(history_id, assert_ok=True)
-        return run_response["outputs"][0]
+        return run_response
 
     def wait_for_history( self, history_id, assert_ok=False, timeout=DEFAULT_TIMEOUT ):
         try:
@@ -139,6 +310,10 @@ class BaseDatasetPopulator( object ):
             kwds[ "__files" ] = { "files_0|file_data": inputs[ "files_0|file_data" ] }
             del inputs[ "files_0|file_data" ]
 
+        ir = kwds.get("inputs_representation", None)
+        if ir is None and "inputs_representation" in kwds:
+            del kwds["inputs_representation"]
+
         return dict(
             tool_id=tool_id,
             inputs=json.dumps(inputs),
@@ -146,11 +321,107 @@ class BaseDatasetPopulator( object ):
             **kwds
         )
 
-    def run_tool( self, tool_id, inputs, history_id, **kwds ):
+    def run_tool( self, tool_id, inputs, history_id, assert_ok=True, **kwds ):
         payload = self.run_tool_payload( tool_id, inputs, history_id, **kwds )
         tool_response = self._post( "tools", data=payload )
-        api_asserts.assert_status_code_is( tool_response, 200 )
-        return tool_response.json()
+        if assert_ok:
+            api_asserts.assert_status_code_is( tool_response, 200 )
+            return tool_response.json()
+        else:
+            return tool_response
+
+    def run_cwl_artifact(
+        self, tool_id, json_path=None, job=None, test_data_directory=None, history_id=None, assert_ok=True, tool_or_workflow="tool",
+    ):
+        if test_data_directory is None and json_path is not None:
+            test_data_directory = os.path.dirname(json_path)
+        if json_path is not None:
+            assert job is None
+            with open( json_path, "r" ) as f:
+                if json_path.endswith(".yml") or json_path.endswith(".yaml"):
+                    job_as_dict = yaml.load( f )
+                else:
+                    job_as_dict = json.load( f )
+        else:
+            job_as_dict = job
+        if history_id is None:
+            history_id = self.new_history()
+
+        def upload_func(upload_target):
+            if isinstance(upload_target, FileUploadTarget):
+                path = upload_target.path
+                with open( path, "rb" ) as f:
+                    content = f.read()
+                return self.new_dataset_request(
+                    history_id=history_id,
+                    content=content,
+                    file_type="auto",
+                )
+            else:
+                content = json.dumps(upload_target.object)
+                return self.new_dataset_request(
+                    history_id=history_id,
+                    content=content,
+                    file_type="expression.json",
+                )
+
+        def create_collection_func(element_identifiers, collection_type):
+            payload = {
+                "name": "dataset collection",
+                "instance_type": "history",
+                "history_id": history_id,
+                "element_identifiers": json.dumps(element_identifiers),
+                "collection_type": collection_type,
+                "fields": None if collection_type != "record" else "auto",
+            }
+            response = self._post( "dataset_collections", data=payload )
+            assert response.status_code == 200
+            return response.json()
+
+        job_as_dict, datasets_uploaded = galactic_job_json(
+            job_as_dict,
+            test_data_directory,
+            upload_func,
+            create_collection_func,
+        )
+        if datasets_uploaded:
+            self.wait_for_history( history_id=history_id, assert_ok=True )
+        if tool_or_workflow == "tool":
+            run_response = self.run_tool( tool_id, job_as_dict, history_id, inputs_representation="cwl", assert_ok=assert_ok )
+            run_object = CwlToolRun( history_id, run_response )
+            if assert_ok:
+                try:
+                    final_state = self.wait_for_job( run_object.job_id )
+                    assert final_state == "ok"
+                except Exception:
+                    self._summarize_history_errors( history_id )
+                    raise
+
+            return run_object
+        else:
+            route = "workflows"
+            path = os.path.join(tool_id)
+            data = dict(
+                from_path=path,
+            )
+            upload_response = self._post(route, data=data)
+            api_asserts.assert_status_code_is(upload_response, 200)
+            workflow = upload_response.json()
+            workflow_id = workflow["id"]
+
+            workflow_request = dict(
+                history="hist_id=%s" % history_id,
+                workflow_id=workflow_id,
+                inputs=json.dumps(job_as_dict),
+                inputs_by="name",
+            )
+            url = "workflows/%s/invocations" % workflow_id
+            invocation_response = self._post(url, data=workflow_request)
+            api_asserts.assert_status_code_is(invocation_response, 200)
+            invocation_id = invocation_response.json()["id"]
+            return CwlWorkflowRun(self, history_id, workflow_id, invocation_id)
+
+    run_cwl_tool = run_cwl_artifact
 
     def get_history_dataset_content( self, history_id, wait=True, **kwds ):
         dataset_id = self.__history_content_id( history_id, wait=wait, **kwds )
@@ -224,6 +495,18 @@ class DatasetPopulator( BaseDatasetPopulator ):
 
     def wait_for_dataset(self, history_id, dataset_id, assert_ok=False, timeout=DEFAULT_TIMEOUT):
         return wait_on_state(lambda: self._get("histories/%s/contents/%s" % (history_id, dataset_id)), assert_ok=assert_ok, timeout=timeout)
+
+
+class FileUploadTarget(object):
+
+    def __init__(self, path):
+        self.path = path
+
+
+class ObjectUploadTarget(object):
+
+    def __init__(self, the_object):
+        self.object = the_object
 
 
 class BaseWorkflowPopulator( object ):

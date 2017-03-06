@@ -767,6 +767,8 @@ class Job( object, JobLike, Dictifiable ):
             # System level details that only admins should have.
             rval['external_id'] = self.job_runner_external_id
             rval['command_line'] = self.command_line
+            rval['cwl_command_state'] = self.cwl_command_state
+            rval['cwl_command_state_version'] = self.cwl_command_state_version
 
         if view == 'element':
             param_dict = dict( [ ( p.name, p.value ) for p in self.parameters ] )
@@ -3822,12 +3824,14 @@ class WorkflowStep( object ):
         self.tool_inputs = None
         self.tool_errors = None
         self.position = None
+        self.inputs = []
         self.input_connections = []
         self.config = None
         self.label = None
         self.uuid = uuid4()
         self.workflow_outputs = []
         self._input_connections_by_name = None
+        self._inputs_by_name = None
 
     @property
     def unique_workflow_outputs(self):
@@ -3863,6 +3867,12 @@ class WorkflowStep( object ):
             self.setup_input_connections_by_name()
         return self._input_connections_by_name
 
+    @property
+    def inputs_by_name(self):
+        if self._inputs_by_name is None:
+            self.setup_inputs_by_name()
+        return self._inputs_by_name
+
     def setup_input_connections_by_name(self):
         # Ensure input_connections has already been set.
 
@@ -3874,6 +3884,17 @@ class WorkflowStep( object ):
                 input_connections_by_name[input_name] = []
             input_connections_by_name[input_name].append(conn)
         self._input_connections_by_name = input_connections_by_name
+
+    def setup_inputs_by_name(self):
+        # Ensure input_connections has already been set.
+
+        # Make connection information available on each step by input name.
+        inputs_by_name = {}
+        for step_input in self.inputs:
+            input_name = step_input.name
+            assert input_name not in inputs_by_name
+            inputs_by_name[input_name] = step_input
+        self._inputs_by_name = inputs_by_name
 
     def create_or_update_workflow_output(self, output_name, label, uuid):
         output = self.workflow_output_for(output_name)
@@ -3927,6 +3948,19 @@ class WorkflowStep( object ):
 
     def log_str(self):
         return "WorkflowStep[index=%d,type=%s]" % (self.order_index, self.type)
+
+
+class WorkflowStepInput( object ):
+
+    default_merge_type = "merge_flattened"
+    default_scatter_type = "dotproduct"
+
+    def __init__( self ):
+        self.id = None
+        self.name = None
+        self.default_value = None
+        self.merge_type = self.default_merge_type
+        self.scatter_type = self.default_scatter_type
 
 
 class WorkflowStepConnection( object ):
