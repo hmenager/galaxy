@@ -53,7 +53,7 @@ from galaxy.tools.parser.xml import XmlPageSource
 from galaxy.tools.parser import ToolOutputCollectionPart
 from galaxy.tools.toolbox import BaseGalaxyToolBox
 from galaxy.tools import expressions
-from galaxy.tools.cwl import shellescape, needs_shell_quoting
+from galaxy.tools.cwl import shellescape, needs_shell_quoting, handle_staging
 from galaxy.util import in_directory
 from galaxy.util import rst_to_html, string_as_bool
 from galaxy.util import ExecutionTimer
@@ -2345,20 +2345,10 @@ class CwlTool( Tool ):
             'stdout': cwl_stdout,
             'env': env,
         }
-        for filename, content in cwl_job_proxy.generate_files.items():
-            tool_working_directory = os.path.join(local_working_directory, 'working')
-            # Move to prepare...
-            safe_makedirs(tool_working_directory)
-            effective_filename = os.path.abspath(os.path.join(tool_working_directory, filename))
-            if not in_directory(effective_filename, tool_working_directory):
-                raise Exception("CWL Job attempted to write file %s, outside working directory" % filename)
-
-            if isinstance(content, dict):
-                src = content["path"]
-                os.symlink(src, effective_filename)
-            else:
-                with open(effective_filename, "w") as f:
-                    f.write(content)
+        tool_working_directory = os.path.join(local_working_directory, 'working')
+        # Move to prepare...
+        safe_makedirs(tool_working_directory)
+        handle_staging(cwl_job_proxy.generate_files, tool_working_directory)
 
         param_dict["__cwl_command"] = command_line
         param_dict["__cwl_command_state"] = cwl_job_state
