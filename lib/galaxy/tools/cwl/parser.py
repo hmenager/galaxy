@@ -235,13 +235,20 @@ class JobProxy(object):
 
     def _ensure_cwl_job_initialized(self):
         if self._cwl_job is None:
+
             self._cwl_job = next(self._tool_proxy._tool.job(
                 self._input_dict,
                 self._output_callback,
                 basedir=self._job_directory,
+                select_resources=self._select_resources,
                 use_container=False
             ))
             self._is_command_line_job = hasattr(self._cwl_job, "command_line")
+
+    def _select_resources(self, request):
+        new_request = request.copy()
+        new_request["cores"] = "$GALAXY_SLOTS"
+        return new_request
 
     @property
     def command_line(self):

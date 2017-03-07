@@ -3,9 +3,8 @@
 import json
 
 from base import api
-
-from .helpers import DatasetPopulator
-from .helpers import skip_without_tool
+from base.populators import DatasetPopulator
+from base.populators import skip_without_tool
 
 
 class CwlToolsTestCase( api.ApiTestCase ):

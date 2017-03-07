@@ -62,6 +62,7 @@ from galaxy.tools.parameters.basic import (
 )
 from galaxy.tools.parameters.grouping import Conditional, ConditionalWhen, Repeat, Section, UploadDataset
 from galaxy.tools.parameters.input_translation import ToolInputTranslator
+from galaxy.tools.parameters.meta import expand_meta_parameters
 from galaxy.tools.parameters.wrapped_json import json_wrap
 from galaxy.tools.test import parse_tests
 from galaxy.tools.parser import (
@@ -76,6 +77,7 @@ from galaxy.util import (
     ExecutionTimer,
     listify,
     rst_to_html,
+    safe_makedirs,
     string_as_bool,
     unicodify
 )

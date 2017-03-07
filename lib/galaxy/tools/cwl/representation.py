@@ -95,9 +95,9 @@ def to_cwl_job(tool, param_dict, local_working_directory):
         else:
             input_json[input_name] = simple_value(input, param_dict[input_name])
 
-    input_json["allocatedResources"] = {
-        "cpu": "$GALAXY_SLOTS",
-    }
+    # input_json["allocatedResources"] = {
+    #     "cpu": "$GALAXY_SLOTS",
+    # }
     return input_json
 
 
