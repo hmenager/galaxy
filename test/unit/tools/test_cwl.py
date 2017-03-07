@@ -68,14 +68,12 @@ def test_workflow_of_files_proxy():
 
     first_runnable = proxy.runnables[0]
     print first_runnable
-    assert False
 
     assert len(galaxy_workflow_dict["steps"]) == 3
     print proxy._workflow
     print dir(proxy._workflow)
     print proxy._workflow.tool
     print dir(proxy._workflow.tool)
-    assert False
 
 
 def test_workflow_embedded_tools_proxy():
@@ -94,14 +92,12 @@ def test_workflow_embedded_tools_proxy():
     print dir(proxy._workflow.tool)
 
 
-    assert False
-
-
 def test_load_proxy_simple():
     cat3 = _cwl_tool_path("draft3/cat3-tool.cwl")
     tool_source = get_tool_source(cat3)
 
-    assert tool_source.parse_description() == "Print the contents of a file to stdout using 'cat' running in a docker container."
+    description = tool_source.parse_description()
+    assert description == "Print the contents of a file to stdout using 'cat' running in a docker container.", description
 
     input_sources = _inputs(tool_source)
     assert len(input_sources) == 1
@@ -161,6 +157,11 @@ def test_sorttool():
 def test_cat1():
     cat1_tool = _cwl_tool_path("draft3/cat1-tool.cwl")
     tool_source = get_tool_source(cat1_tool)
+    _inputs(tool_source)
+
+    # Test reloading - had a regression where this broke down.
+    cat1_tool_again = _cwl_tool_path("draft3/cat1-tool.cwl")
+    tool_source = get_tool_source(cat1_tool_again)
     _inputs(tool_source)
 
 
