@@ -2353,7 +2353,7 @@ class CwlTool( Tool ):
         tool_working_directory = os.path.join(local_working_directory, 'working')
         # Move to prepare...
         safe_makedirs(tool_working_directory)
-        handle_staging(cwl_job_proxy.generate_files, tool_working_directory)
+        cwl_job_proxy.stage_files()
 
         param_dict["__cwl_command"] = command_line
         param_dict["__cwl_command_state"] = cwl_job_state

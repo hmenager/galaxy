@@ -43,6 +43,12 @@ except (ImportError, SyntaxError):
     # Drop SyntaxError once schema_salad supports Python 3
     schema_salad = None
 
+try:
+    from schema_salad import ref_resolver
+except (ImportError, SyntaxError):
+    ref_resolver = None
+
+
 needs_shell_quoting = re.compile(r"""(^$|[\s|&;()<>\'"$@])""").search
 
 
@@ -68,6 +74,7 @@ def ensure_cwltool_available():
 
 __all__ = (
     'main',
+    'ref_resolver',
     'load_tool',
     'workflow',
     'process',

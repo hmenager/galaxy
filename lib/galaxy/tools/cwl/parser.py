@@ -18,6 +18,7 @@ from galaxy.util.odict import odict
 
 from .cwltool_deps import (
     ensure_cwltool_available,
+    process,
     workflow,
 )
 
@@ -328,6 +329,9 @@ class JobProxy(object):
         if create and not os.path.exists(secondary_files_dir):
             safe_makedirs(secondary_files_dir)
         return secondary_files_dir
+
+    def stage_files(self):
+        process.stageFiles(self.cwl_job().pathmapper, os.symlink, ignoreWritable=True)
 
     @staticmethod
     def _job_file(job_directory):
