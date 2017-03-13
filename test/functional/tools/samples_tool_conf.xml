@@ -137,6 +137,8 @@
   <tool file="cwl_tools/draft3_custom/optional-output2.cwl" />
   <tool file="cwl_tools/draft3_custom/showindex1.cwl" />
 
+  <tool file="cwl_tools/v1.0_custom/md5sum_non_strict.cwl" />
+
   <!-- Tools interesting only for building up test workflows. -->
 
   <!-- Next three tools demonstrate concatenating multiple datasets

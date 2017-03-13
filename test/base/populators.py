@@ -69,7 +69,8 @@ def galactic_job_json(job, test_data_directory, upload_func):
         if type_class != "File":
             return value
 
-        file_path = value.get("path", None)
+        # TODO: Dispatch on draft 3 vs v1.0+ tools here in the future.
+        file_path = value.get("path", None) or value.get("location", None)
         if file_path is None:
             return value
 
@@ -243,8 +244,13 @@ class BaseDatasetPopulator( object ):
         run_response = self.run_tool( tool_id, job_as_dict, history_id, inputs_representation="cwl", assert_ok=assert_ok )
         run_object = CwlToolRun( history_id, run_response )
         if assert_ok:
-            final_state = self.wait_for_job( run_object.job_id )
-            assert final_state == "ok"
+            try:
+                final_state = self.wait_for_job( run_object.job_id )
+                assert final_state == "ok"
+            except Exception:
+                self._summarize_history_errors( history_id )
+                raise
+
         return run_object
 
     def get_history_dataset_content( self, history_id, wait=True, **kwds ):
