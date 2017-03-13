@@ -21,7 +21,7 @@ class DockerizedJobsIntegrationTestCase(integration_util.IntegrationTestCase):
         config["job_config_file"] = DOCKERIZED_JOB_CONFIG_FILE
         # Disable tool dependency resolution.
         config["tool_dependency_dir"] = "none"
-        config["enable_beta_mulled_containers"] = True
+        config["enable_beta_mulled_containers"] = "true"
 
     def setUp(self):
         super(DockerizedJobsIntegrationTestCase, self).setUp()

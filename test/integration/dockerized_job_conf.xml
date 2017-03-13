@@ -8,11 +8,19 @@
         <handler id="main"/>
     </handlers>
 
-    <destinations default="local_dest">
-        <destination id="local_dest" runner="local">
+    <destinations default="local_docker">
+        <destination id="local_docker" runner="local">
             <param id="docker_enabled">true</param>
             <param id="docker_sudo">false</param>
         </destination>
+
+        <destination id="local_upload" runner="local">
+        </destination>
+
     </destinations>
+
+    <tools>
+        <tool id="upload1" destination="local_upload" />
+    </tools>
 
 </job_conf>
