@@ -691,12 +691,9 @@ class ToolModule( WorkflowModule ):
         if self.tool:
             step.tool_version = self.get_version()
             step.tool_hash = self.tool.tool_hash
-            step.tool_inputs = self.tool.params_to_strings( self.state.inputs, self.trans.app )
         else:
             step.tool_version = None
             step.tool_hash = None
-            step.tool_inputs = None
-        step.tool_errors = self.errors
         for k, v in self.post_job_actions.items():
             pja = self.__to_pja( k, v, step )
             self.trans.sa_session.add( pja )
