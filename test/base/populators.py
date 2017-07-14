@@ -408,6 +408,22 @@ class WorkflowPopulator( BaseWorkflowPopulator, ImporterGalaxyInterface ):
         assert upload_response.status_code == 200, upload_response
         return upload_response.json()
 
+    def import_tool(self, tool):
+        """ Import a workflow via POST /api/workflows or
+        comparable interface into Galaxy.
+        """
+        upload_response = self._import_tool_response(tool)
+        self._assert_status_code_is( upload_response, 200 )
+        return upload_response.json()
+
+    def _import_tool_response(self, tool):
+        tool_str = json.dumps(tool, indent=4)
+        data = {
+            'representation': tool_str
+        }
+        upload_response = self._post( "dynamic_tools", data=data, admin=True )
+        return upload_response
+
 
 class LibraryPopulator( object ):
 

@@ -93,22 +93,6 @@ class BaseWorkflowsApiTestCase( api.ApiTestCase ):
     def _upload_yaml_workflow(self, has_yaml, **kwds):
         return self.workflow_populator.upload_yaml_workflow(has_yaml, **kwds)
 
-    def import_tool(self, tool):
-        """ Import a workflow via POST /api/workflows or
-        comparable interface into Galaxy.
-        """
-        upload_response = self._import_tool_response(tool)
-        self._assert_status_code_is( upload_response, 200 )
-        return upload_response.json()
-
-    def _import_tool_response(self, tool):
-        tool_str = dumps(tool, indent=4)
-        data = {
-            'representation': tool_str
-        }
-        upload_response = self._post( "dynamic_tools", data=data, admin=True )
-        return upload_response
-
     def _setup_workflow_run( self, workflow, inputs_by='step_id', history_id=None ):
         uploaded_workflow_id = self.workflow_populator.create_workflow( workflow )
         if not history_id:
