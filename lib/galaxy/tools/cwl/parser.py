@@ -376,8 +376,8 @@ class WorkflowProxy(object):
 
     def step_proxies(self):
         proxies = []
-        for step in self._workflow.steps:
-            proxies.append(StepProxy(self, step))
+        for i, step in enumerate(self._workflow.steps):
+            proxies.append(StepProxy(self, step, i))
         return proxies
 
     @property
@@ -393,9 +393,9 @@ class WorkflowProxy(object):
         steps = {}
 
         index = 0
-        for i, input_dict in self._workflow.tool['inputs']:
+        for i, input_dict in enumerate(self._workflow.tool['inputs']):
             index += 1
-            steps[index] = input_dict
+            steps[index] = self.cwl_input_to_galaxy_step(input_dict, i)
 
         for i, step_proxy in enumerate(self.step_proxies()):
             index += 1
@@ -406,15 +406,44 @@ class WorkflowProxy(object):
             'steps': steps,
         }
 
+    def jsonld_id_to_label(self, id):
+        return id.rsplit("#", 1)[-1]
+
+    def cwl_input_to_galaxy_step(self, input, i):
+        assert input["type"] == "File"
+        return {
+            "id": i,
+            "label": self.jsonld_id_to_label(input["id"]),
+            "position": {"left": 0, "top": 0},
+            "type": "data_input",  # TODO: dispatch on type obviously...
+            "annotation": self.cwl_object_to_annotation(input),
+            "input_connections": [],  # Should the Galaxy API really require this? - Seems to.
+        }
+
+    def cwl_object_to_annotation(self, cwl_obj):
+        return cwl_obj.get("doc", None)
+
 
 class StepProxy(object):
 
-    def __init__(self, workflow_proxy, step):
+    def __init__(self, workflow_proxy, step, index):
         self._workflow_proxy = workflow_proxy
         self._step = step
+        self._index = index
 
     def to_dict(self):
-        return {}
+        # We are to the point where we need a content id for this. We got
+        # figure that out - short term we can load everything up as an
+        # in-memory tool and reference by the JSONLD ID I think. So workflow
+        # proxy should force the loading of a tool.
+        return {
+            "id": self._index,
+            "label": self._workflow_proxy.jsonld_id_to_label(self._step.id),
+            "position": {"left": 0, "top": 0},
+            "type": "tool",  # TODO: dispatch on type obviously...
+            "annotation": self._workflow_proxy.cwl_object_to_annotation(self._step.tool),
+            "input_connections": [],  # TODO: This.
+        }
 
 
 def _simple_field_union(field):
