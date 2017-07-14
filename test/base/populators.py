@@ -390,8 +390,8 @@ class WorkflowPopulator( BaseWorkflowPopulator, ImporterGalaxyInterface ):
         self.galaxy_interactor = galaxy_interactor
         self.dataset_populator = DatasetPopulator( galaxy_interactor )
 
-    def _post( self, route, data={} ):
-        return self.galaxy_interactor.post( route, data )
+    def _post( self, route, data={}, admin=False ):
+        return self.galaxy_interactor.post( route, data, admin=admin )
 
     def _get( self, route ):
         return self.galaxy_interactor.get( route )
@@ -413,7 +413,7 @@ class WorkflowPopulator( BaseWorkflowPopulator, ImporterGalaxyInterface ):
         comparable interface into Galaxy.
         """
         upload_response = self._import_tool_response(tool)
-        self._assert_status_code_is( upload_response, 200 )
+        assert upload_response.status_code == 200, upload_response
         return upload_response.json()
 
     def _import_tool_response(self, tool):
