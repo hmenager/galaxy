@@ -13,7 +13,7 @@ class CwlWorkflowsTestCase( BaseWorkflowsApiTestCase ):
 
     def test_count_lines_wf1( self ):
         """Test simple workflow count-lines1-wf.cwl."""
-        load_response = self._load_workflow("draft3/count-lines1-wf.cwl")
+        load_response = self._load_workflow("v1.0/count-lines1-wf.cwl")
         self._assert_status_code_is( load_response, 200 )
 
     def _load_workflow(self, rel_path):
