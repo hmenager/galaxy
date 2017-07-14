@@ -1,7 +1,6 @@
 import logging
-import os
 
-from galaxy.tools.cwl import tool_proxy
+from galaxy.tools.cwl import tool_proxy, tool_proxy_from_persistent_representation
 from galaxy.tools.deps import requirements
 from galaxy.util.odict import odict
 
@@ -18,24 +17,26 @@ log = logging.getLogger(__name__)
 
 class CwlToolSource(ToolSource):
 
-    def __init__(self, tool_file, strict_cwl_validation=True):
-        self._cwl_tool_file = tool_file
-        self._id, _ = os.path.splitext(os.path.basename(tool_file))
-        self._tool_proxy = None
+    def __init__(self, tool_file=None, tool_object=None, strict_cwl_validation=True):
         self._source_path = tool_file
+        self._source_object = tool_object
+        self._tool_proxy = None
         self._strict_cwl_validation = strict_cwl_validation
 
     @property
     def tool_proxy(self):
         if self._tool_proxy is None:
-            self._tool_proxy = tool_proxy(self._source_path, strict_cwl_validation=self._strict_cwl_validation)
+            if self._source_path is not None:
+                self._tool_proxy = tool_proxy(self._source_path, strict_cwl_validation=self._strict_cwl_validation)
+            else:
+                self._tool_proxy = tool_proxy_from_persistent_representation(self._source_object, strict_cwl_validation=self._strict_cwl_validation)
         return self._tool_proxy
 
     def parse_tool_type(self):
         return 'cwl'
 
     def parse_id(self):
-        return self._id
+        return self.tool_proxy.galaxy_id()
 
     def parse_name(self):
         return self.tool_proxy.label() or self.parse_id()

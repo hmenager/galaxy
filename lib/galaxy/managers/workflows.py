@@ -197,6 +197,18 @@ class WorkflowContentsManager(UsesAnnotations):
     ):
         # Put parameters in workflow mode
         trans.workflow_building_mode = True
+        if data and "src" in data and data["src"] == "from_path":
+            from galaxy.tools.cwl import workflow_proxy
+            wf_proxy = workflow_proxy(data["path"])
+            tool_reference_proxies = wf_proxy.tool_reference_proxies()
+            for tool_reference_proxy in tool_reference_proxies:
+                # TODO: Namespace IDS in workflows.
+                # TODO: Don't duplicately load these tools.
+                self.app.dynamic_tool_manager.create_tool({
+                    "representation": tool_reference_proxy.to_persistent_representation(),
+                })
+            data = wf_proxy.to_dict()
+
         # If there's a source, put it in the workflow name.
         if source:
             name = "%s (imported from %s)" % ( data['name'], source )
@@ -839,7 +851,7 @@ class WorkflowContentsManager(UsesAnnotations):
         """
         step = model.WorkflowStep()
         # TODO: Consider handling position inside module.
-        step.position = step_dict['position']
+        step.position = step_dict.get('position', {"left": 0, "top": 0})
         if step_dict.get("uuid", None) and step_dict['uuid'] != "None":
             step.uuid = step_dict["uuid"]
         if "label" in step_dict:
