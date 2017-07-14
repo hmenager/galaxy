@@ -2817,6 +2817,7 @@ class FilterFromFileTool(DatabaseOperationTool):
         )
         output_collections.create_collection(
             self.outputs["output_discarded"], "output_discarded", elements=discarded_elements
+        )
 
 
 class GroupTool( DatabaseOperationTool, UsesExpressions ):
