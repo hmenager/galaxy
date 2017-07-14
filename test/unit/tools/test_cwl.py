@@ -58,22 +58,24 @@ def test_checks_cwl_version():
 
 
 def test_workflow_of_files_proxy():
-    proxy = workflow_proxy(_cwl_tool_path("draft3/count-lines1-wf.cwl"))
-    step_proxies = proxy.step_proxies()
-    assert len(step_proxies) == 2
+    versions = ["draft3", "v1.0"]
+    for version in versions:
+        proxy = workflow_proxy(_cwl_tool_path("%s/count-lines1-wf.cwl" % version))
+        step_proxies = proxy.step_proxies()
+        assert len(step_proxies) == 2
 
-    galaxy_workflow_dict = proxy.to_dict()
+        galaxy_workflow_dict = proxy.to_dict()
 
-    assert len(proxy.runnables) == 2
+        assert len(proxy.runnables) == 2
 
-    first_runnable = proxy.runnables[0]
-    print first_runnable
+        first_runnable = proxy.runnables[0]
+        print first_runnable
 
-    assert len(galaxy_workflow_dict["steps"]) == 3
-    print proxy._workflow
-    print dir(proxy._workflow)
-    print proxy._workflow.tool
-    print dir(proxy._workflow.tool)
+        assert len(galaxy_workflow_dict["steps"]) == 3
+        print proxy._workflow
+        print dir(proxy._workflow)
+        print proxy._workflow.tool
+        print dir(proxy._workflow.tool)
 
 
 def test_workflow_embedded_tools_proxy():

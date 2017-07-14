@@ -46,7 +46,11 @@ CWL_FILES = {
     "v1.0": [
         "cat-job.json",
         "cat3-tool.cwl",
+        "count-lines1-wf.cwl",
+        "count-lines2-wf.cwl",
         "hello.txt",
+        "parseInt-tool.cwl",
+        "wc-tool.cwl",
     ]
 }
 
