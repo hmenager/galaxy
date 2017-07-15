@@ -1,5 +1,3 @@
-import hashlib
-import json
 import logging
 
 from galaxy.exceptions import ObjectHashExistsException
@@ -10,6 +8,7 @@ from .base import ModelManager
 
 from galaxy import exceptions
 from galaxy import model
+from galaxy.tools.hash import build_tool_hash
 
 log = logging.getLogger(__name__)
 
@@ -93,13 +92,3 @@ class DynamicToolManager(ModelManager):
 
     def list_tools(self, active=True):
         return self.query().filter(active=active)
-
-
-def build_tool_hash(as_dict):
-    # http://stackoverflow.com/a/22003440
-    as_str = json.dumps(as_dict, sort_keys=True)
-
-    m = hashlib.sha256()
-    m.update(as_str)
-    hash = m.hexdigest()
-    return hash

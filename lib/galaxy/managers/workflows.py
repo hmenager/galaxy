@@ -17,7 +17,6 @@ from galaxy.util.json import safe_loads
 from galaxy.workflow import modules
 
 from .base import decode_id
-from .tools import DynamicToolManager
 
 # For WorkflowContentManager
 from galaxy.util.sanitize_html import sanitize_html
@@ -185,7 +184,6 @@ class WorkflowContentsManager(UsesAnnotations):
 
     def __init__(self, app):
         self.app = app
-        self.dynamic_tool_manager = DynamicToolManager( app )
 
     def build_workflow_from_dict(
         self,
@@ -608,7 +606,7 @@ class WorkflowContentsManager(UsesAnnotations):
                 tool_representation = None
                 tool_hash = step.tool_hash
                 if tool_hash is not None:
-                    dynamic_tool = self.dynamic_tool_manager.get_tool_by_hash(
+                    dynamic_tool = self.app.dynamic_tool_manager.get_tool_by_hash(
                         tool_hash
                     )
                     tool_representation = json.dumps(dynamic_tool.value)
