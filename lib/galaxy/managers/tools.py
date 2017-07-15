@@ -36,7 +36,7 @@ class DynamicToolManager(ModelManager):
             dynamic_tool = self.get_tool_by_hash(id_or_hash)
         return dynamic_tool
 
-    def get_tool_by_hash( self, tool_hash ):
+    def get_tool_by_hash(self, tool_hash):
         return self._one_or_none(
             self.query().filter(self.model_class.tool_hash == tool_hash)
         )
@@ -77,7 +77,7 @@ class DynamicToolManager(ModelManager):
             raise Exception("Unknown tool type encountered.")
         # TODO: enforce via DB constraint and catch appropriate
         # exception.
-        existing_tool = self.get_tool_by_hash( tool_hash )
+        existing_tool = self.get_tool_by_hash(tool_hash)
         if existing_tool is not None:
             raise ObjectHashExistsException(existing_tool.id)
         dynamic_tool = self.create(
@@ -88,7 +88,7 @@ class DynamicToolManager(ModelManager):
             uuid=uuid,
             value=value,
         )
-        self.app.toolbox.load_dynamic_tool( dynamic_tool )
+        self.app.toolbox.load_dynamic_tool(dynamic_tool)
         return dynamic_tool
 
     def list_tools(self, active=True):
@@ -97,7 +97,7 @@ class DynamicToolManager(ModelManager):
 
 def build_tool_hash(as_dict):
     # http://stackoverflow.com/a/22003440
-    as_str = json.dumps(as_dict, sort_keys=True )
+    as_str = json.dumps(as_dict, sort_keys=True)
 
     m = hashlib.sha256()
     m.update(as_str)
