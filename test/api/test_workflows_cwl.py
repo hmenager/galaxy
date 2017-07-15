@@ -11,6 +11,8 @@ cwl_tool_directory = os.path.join(galaxy_root_path, "test", "functional", "tools
 class CwlWorkflowsTestCase( BaseWorkflowsApiTestCase ):
     """Test case encompassing CWL workflow tests."""
 
+    require_admin_user = True
+
     def test_count_lines_wf1( self ):
         """Test simple workflow count-lines1-wf.cwl."""
         load_response = self._load_workflow("v1.0/count-lines1-wf.cwl")
@@ -22,5 +24,5 @@ class CwlWorkflowsTestCase( BaseWorkflowsApiTestCase ):
             from_path=path,
         )
         route = "workflows"
-        upload_response = self._post( route, data=data, admin=True )
+        upload_response = self._post( route, data=data )
         return upload_response

@@ -2,6 +2,7 @@
 import os
 
 from galaxy.tools.cwl import tool_proxy
+from galaxy.tools.cwl.parser import ToolProxy
 from galaxy.tools.cwl import workflow_proxy
 
 from galaxy.tools.parser.factory import get_tool_source
@@ -20,6 +21,18 @@ def test_tool_proxy():
     tool_proxy(_cwl_tool_path("draft3/bwa-mem-tool.cwl"))
 
     tool_proxy(_cwl_tool_path("draft3/parseInt-tool.cwl"))
+
+
+def test_serialize_deserialize():
+    tool = tool_proxy(_cwl_tool_path("draft3/cat1-tool.cwl"))
+    ToolProxy.from_persistent_representation(tool.to_persistent_representation())
+
+
+def test_reference_proxies():
+    versions = ["draft3", "v1.0"]
+    for version in versions:
+        proxy = workflow_proxy(_cwl_tool_path("%s/count-lines1-wf.cwl" % version))
+        proxy.tool_reference_proxies()
 
 
 def test_checks_requirements():
@@ -133,6 +146,8 @@ def test_cwl_strict_parsing():
 def test_load_proxy_bwa_mem():
     bwa_mem = _cwl_tool_path("draft3/bwa-mem-tool.cwl")
     tool_source = get_tool_source(bwa_mem)
+    tool_id = tool_source.parse_id()
+    assert tool_id == "bwa-mem-tool", tool_id
     _inputs(tool_source)
     # TODO: test repeat generated...
 

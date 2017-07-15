@@ -200,6 +200,13 @@ class WorkflowContentsManager(UsesAnnotations):
         if data and "src" in data and data["src"] == "from_path":
             from galaxy.tools.cwl import workflow_proxy
             wf_proxy = workflow_proxy(data["path"])
+            tool_reference_proxies = wf_proxy.tool_reference_proxies()
+            for tool_reference_proxy in tool_reference_proxies:
+                # TODO: Namespace IDS in workflows.
+                # TODO: Don't duplicately load these tools.
+                self.app.dynamic_tool_manager.create_tool({
+                    "representation": tool_reference_proxy.to_persistent_representation(),
+                })
             data = wf_proxy.to_dict()
 
         # If there's a source, put it in the workflow name.

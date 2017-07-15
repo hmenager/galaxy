@@ -5,20 +5,25 @@ of the framework.
 """
 from __future__ import absolute_import
 
+import base64
 import json
 import logging
 import os
+import pickle
 from abc import ABCMeta, abstractmethod
 
 import six
 
+from galaxy.tools.hash import build_tool_hash
 from galaxy.util import safe_makedirs
 from galaxy.util.bunch import Bunch
 from galaxy.util.odict import odict
 
 from .cwltool_deps import (
     ensure_cwltool_available,
+    load_tool,
     process,
+    workflow,
 )
 
 from .schema import non_strict_schema_loader, schema_loader
@@ -50,6 +55,12 @@ def tool_proxy(tool_path, strict_cwl_validation=True):
     return tool
 
 
+def tool_proxy_from_persistent_representation(persisted_tool, strict_cwl_validation=True):
+    ensure_cwltool_available()
+    tool = to_cwl_tool_object(persisted_tool=persisted_tool, strict_cwl_validation=strict_cwl_validation)
+    return tool
+
+
 def workflow_proxy(workflow_path, strict_cwl_validation=True):
     ensure_cwltool_available()
     workflow = to_cwl_workflow_object(workflow_path, strict_cwl_validation=strict_cwl_validation)
@@ -68,9 +79,13 @@ def load_job_proxy(job_directory, strict_cwl_validation=True):
     return cwl_job
 
 
-def to_cwl_tool_object(tool_path, strict_cwl_validation=True):
-    proxy_class = None
-    cwl_tool = _schema_loader(strict_cwl_validation).tool(path=tool_path)
+def to_cwl_tool_object(tool_path=None, tool_object=None, persisted_tool=None, strict_cwl_validation=True):
+    if tool_path is not None:
+        cwl_tool = _schema_loader(strict_cwl_validation).tool(
+            path=tool_path
+        )
+    else:
+        cwl_tool = ToolProxy.from_persistent_representation(persisted_tool)
 
     if isinstance(cwl_tool, int):
         raise Exception("Failed to load tool.")
@@ -80,8 +95,14 @@ def to_cwl_tool_object(tool_path, strict_cwl_validation=True):
     # between Galaxy and cwltool.
     _hack_cwl_requirements(cwl_tool)
     check_requirements(raw_tool)
+    return cwl_tool_object_to_proxy(cwl_tool, tool_path=tool_path)
+
+
+def cwl_tool_object_to_proxy(cwl_tool, tool_path=None):
+    raw_tool = cwl_tool.tool
     if "class" not in raw_tool:
         raise Exception("File does not declare a class, not a valid Draft 3+ CWL tool.")
+
     process_class = raw_tool["class"]
     if process_class == "CommandLineTool":
         proxy_class = CommandLineToolProxy
@@ -89,7 +110,9 @@ def to_cwl_tool_object(tool_path, strict_cwl_validation=True):
         proxy_class = ExpressionToolProxy
     else:
         raise Exception("File not a CWL CommandLineTool.")
-    if "cwlVersion" not in raw_tool:
+    top_level_object = tool_path is not None
+    if top_level_object and ("cwlVersion" not in raw_tool):
+        # cwl_tool.metadata["cwlVersion"]
         raise Exception("File does not declare a CWL version, pre-draft 3 CWL tools are not supported.")
 
     proxy = proxy_class(cwl_tool, tool_path)
@@ -147,7 +170,7 @@ def check_requirements(rec, tool=True):
 @six.add_metaclass(ABCMeta)
 class ToolProxy( object ):
 
-    def __init__(self, tool, tool_path):
+    def __init__(self, tool, tool_path=None):
         self._tool = tool
         self._tool_path = tool_path
 
@@ -157,6 +180,19 @@ class ToolProxy( object ):
         a cwltool compatible variant.
         """
         return JobProxy(self, input_dict, output_dict, job_directory=job_directory)
+
+    @property
+    def id(self):
+        print dir(self._tool.metadata)
+        raw_id = self._tool.tool.get("id", None)
+        return raw_id
+
+    def galaxy_id(self):
+        raw_id = self.id
+        if raw_id:
+            return os.path.splitext(os.path.basename(raw_id))[0]
+        else:
+            return build_tool_hash(self.to_persistent_representation())
 
     @abstractmethod
     def input_instances(self):
@@ -178,8 +214,28 @@ class ToolProxy( object ):
     def label(self):
         """ Return label for tool. """
 
+    def to_persistent_representation(self):
+        """Return a JSON representation of this tool. Not for serialization
+        over the wire, but serialization in a database."""
+        # TODO: Replace this with some more readable serialization,
+        # I really don't like using pickle here.
+        return {
+            "class": self._class,
+            "pickle": base64.b64encode(pickle.dumps(remove_pickle_problems(self._tool), -1)),
+        }
+
+    @staticmethod
+    def from_persistent_representation(as_object):
+        """Recover an object serialized with to_persistent_representation."""
+        if "class" not in as_object:
+            raise Exception("Failed to deserialize tool proxy from JSON object - no class found.")
+        if "pickle" not in as_object:
+            raise Exception("Failed to deserialize tool proxy from JSON object - no pickle representation found.")
+        return pickle.loads(base64.b64decode(as_object["pickle"]))
+
 
 class CommandLineToolProxy(ToolProxy):
+    _class = "CommandLineTool"
 
     def description(self):
         return self._tool.tool.get('doc')
@@ -232,7 +288,7 @@ class CommandLineToolProxy(ToolProxy):
 
 
 class ExpressionToolProxy(CommandLineToolProxy):
-    pass
+    _class = "ExpressionTool"
 
 
 class JobProxy(object):
@@ -374,6 +430,16 @@ class WorkflowProxy(object):
         self._workflow = workflow
         self._workflow_path = workflow_path
 
+    def tool_references(self):
+        """Fetch tool source definitions for all referenced tools."""
+        references = []
+        for step in self.step_proxies():
+            references.extend(step.tool_references())
+        return references
+
+    def tool_reference_proxies(self):
+        return map(lambda tool_object: cwl_tool_object_to_proxy(tool_object), self.tool_references())
+
     def step_proxies(self):
         proxies = []
         for i, step in enumerate(self._workflow.steps):
@@ -404,6 +470,7 @@ class WorkflowProxy(object):
         return {
             'name': name,
             'steps': steps,
+            'annotation': self.cwl_object_to_annotation(self._workflow.tool),
         }
 
     def jsonld_id_to_label(self, id):
@@ -417,7 +484,7 @@ class WorkflowProxy(object):
             "position": {"left": 0, "top": 0},
             "type": "data_input",  # TODO: dispatch on type obviously...
             "annotation": self.cwl_object_to_annotation(input),
-            "input_connections": [],  # Should the Galaxy API really require this? - Seems to.
+            "input_connections": {},  # Should the Galaxy API really require this? - Seems to.
         }
 
     def cwl_object_to_annotation(self, cwl_obj):
@@ -431,19 +498,52 @@ class StepProxy(object):
         self._step = step
         self._index = index
 
+    def tool_references(self):
+        # Return a list so we can handle subworkflows recursively in the future.
+        return [self._step.embedded_tool]
+
     def to_dict(self):
         # We are to the point where we need a content id for this. We got
         # figure that out - short term we can load everything up as an
         # in-memory tool and reference by the JSONLD ID I think. So workflow
         # proxy should force the loading of a tool.
+        print(self.tool_references()[0])
+        tool_proxy = cwl_tool_object_to_proxy(self.tool_references()[0])
+        tool_hash = build_tool_hash(tool_proxy.to_persistent_representation())
         return {
             "id": self._index,
+            "content_id": tool_proxy.galaxy_id(),
+            "tool_hash": tool_hash,
             "label": self._workflow_proxy.jsonld_id_to_label(self._step.id),
             "position": {"left": 0, "top": 0},
             "type": "tool",  # TODO: dispatch on type obviously...
             "annotation": self._workflow_proxy.cwl_object_to_annotation(self._step.tool),
-            "input_connections": [],  # TODO: This.
+            "input_connections": {},  # TODO: This.
         }
+
+
+def remove_pickle_problems(obj):
+    """doc_loader does not pickle correctly"""
+    if hasattr(obj, "doc_loader"):
+        obj.doc_loader = None
+    if hasattr(obj, "embedded_tool"):
+        obj.embedded_tool = remove_pickle_problems(obj.embedded_tool)
+    if hasattr(obj, "steps"):
+        obj.steps = [remove_pickle_problems(s) for s in obj.steps]
+    return obj
+
+
+@six.add_metaclass(ABCMeta)
+class WorkflowToolReference(object):
+    pass
+
+
+class EmbeddedWorkflowToolReference(WorkflowToolReference):
+    pass
+
+
+class ExternalWorkflowToolReference(WorkflowToolReference):
+    pass
 
 
 def _simple_field_union(field):
