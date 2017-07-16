@@ -1,6 +1,7 @@
 """Test CWL workflow functionality."""
 import json
 import os
+import re
 
 from galaxy.util import galaxy_root_path
 
@@ -24,7 +25,6 @@ class CwlWorkflowsTestCase( BaseWorkflowsApiTestCase ):
         for step_index, step in workflow_content["steps"].items():
             if "tool_representation" in step:
                 del step["tool_representation"]
-        print("%s" % workflow_content)
         # AssertionError: Request status code (400) was not expected value 200. Body was {u'err_msg': u"Workflow cannot be run because an expected input step '1' has no input dataset.", u'err_code': 0}
         history_id = self.dataset_populator.new_history()
         hda1 = self.dataset_populator.new_dataset( history_id, content="hello world\nhello all\nhello all in world\nhello" )
@@ -40,6 +40,10 @@ class CwlWorkflowsTestCase( BaseWorkflowsApiTestCase ):
         url = "workflows/%s/invocations" % workflow_id
         invocation_response = self._post( url, data=workflow_request )
         self._assert_status_code_is( invocation_response, 200 )
+        invocation_id = invocation_response.json()["id"]
+        self.wait_for_invocation_and_jobs( history_id, workflow_id, invocation_id )
+        output = self.dataset_populator.get_history_dataset_content( history_id, hid=2 )
+        assert re.search(r"\s+4\s+9\s+47\s+", output)
 
     def test_count_lines_wf1( self ):
         """Test simple workflow count-lines1-wf.cwl."""

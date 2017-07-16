@@ -71,10 +71,15 @@ def load_job_proxy(job_directory, strict_cwl_validation=True):
     ensure_cwltool_available()
     job_objects_path = os.path.join(job_directory, JOB_JSON_FILE)
     job_objects = json.load(open(job_objects_path, "r"))
-    tool_path = job_objects["tool_path"]
     job_inputs = job_objects["job_inputs"]
     output_dict = job_objects["output_dict"]
-    cwl_tool = tool_proxy(tool_path, strict_cwl_validation=strict_cwl_validation)
+    # Any reason to retain older tool_path variant of this? Probably not?
+    if "tool_path" in job_objects:
+        tool_path = job_objects["tool_path"]
+        cwl_tool = tool_proxy(tool_path, strict_cwl_validation=strict_cwl_validation)
+    else:
+        persisted_tool = job_objects["tool_representation"]
+        cwl_tool = tool_proxy_from_persistent_representation(persisted_tool, strict_cwl_validation=strict_cwl_validation)
     cwl_job = cwl_tool.job_proxy(job_inputs, output_dict, job_directory=job_directory)
     return cwl_job
 
@@ -388,7 +393,8 @@ class JobProxy(object):
     def save_job(self):
         job_file = JobProxy._job_file(self._job_directory)
         job_objects = {
-            "tool_path": os.path.abspath(self._tool_proxy._tool_path),
+            # "tool_path": os.path.abspath(self._tool_proxy._tool_path),
+            "tool_representation": self._tool_proxy.to_persistent_representation(),
             "job_inputs": self._input_dict,
             "output_dict": self._output_dict,
         }
@@ -583,12 +589,21 @@ class StepProxy(object):
         # proxy should force the loading of a tool.
         tool_proxy = cwl_tool_object_to_proxy(self.tool_references()[0])
         tool_hash = build_tool_hash(tool_proxy.to_persistent_representation())
+
+        # We need to stub out null entries for things getting replaced by
+        # connections. This doesn't seem ideal - consider just making Galaxy
+        # handle this.
+        tool_state = {}
+        for input_name in input_connections.keys():
+            tool_state[input_name] = None
+
         return {
             "id": self._index,
             "content_id": tool_proxy.galaxy_id(),
             "tool_hash": tool_hash,
             "label": self._workflow_proxy.jsonld_id_to_label(self._step.id),
             "position": {"left": 0, "top": 0},
+            "tool_state": tool_state,
             "type": "tool",  # TODO: dispatch on type obviously...
             "annotation": self._workflow_proxy.cwl_object_to_annotation(self._step.tool),
             "input_connections": input_connections,
