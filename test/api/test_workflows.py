@@ -274,6 +274,12 @@ class BaseWorkflowsApiTestCase( api.ApiTestCase ):
         downloaded_workflow = download_response.json()
         return downloaded_workflow
 
+    def wait_for_invocation_and_jobs( self, history_id, workflow_id, invocation_id, assert_ok=True ):
+        self.workflow_populator.wait_for_invocation( workflow_id, invocation_id )
+        time.sleep(.5)
+        self.dataset_populator.wait_for_history( history_id, assert_ok=assert_ok )
+        time.sleep(.5)
+
 
 # Workflow API TODO:
 # - Allow history_id as param to workflow run action. (hist_id)
@@ -1280,12 +1286,6 @@ test_data: {}
         self.dataset_populator.wait_for_history( history_id, assert_ok=True )
         content = self.dataset_populator.get_history_dataset_content( history_id )
         self.assertEquals("43\n4.14\n", content)
-
-    def wait_for_invocation_and_jobs( self, history_id, workflow_id, invocation_id, assert_ok=True ):
-        self.workflow_populator.wait_for_invocation( workflow_id, invocation_id )
-        time.sleep(.5)
-        self.dataset_populator.wait_for_history( history_id, assert_ok=assert_ok )
-        time.sleep(.5)
 
     def test_cannot_run_inaccessible_workflow( self ):
         workflow = self.workflow_populator.load_workflow( name="test_for_run_cannot_access" )
