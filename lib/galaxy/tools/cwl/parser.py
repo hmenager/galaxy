@@ -430,6 +430,10 @@ class WorkflowProxy(object):
         self._workflow = workflow
         self._workflow_path = workflow_path
 
+    @property
+    def cwl_id(self):
+        return self._workflow.tool["id"]
+
     def tool_references(self):
         """Fetch tool source definitions for all referenced tools."""
         references = []
@@ -442,8 +446,9 @@ class WorkflowProxy(object):
 
     def step_proxies(self):
         proxies = []
+        num_input_steps = len(self._workflow.tool['inputs'])
         for i, step in enumerate(self._workflow.steps):
-            proxies.append(StepProxy(self, step, i))
+            proxies.append(StepProxy(self, step, i + num_input_steps))
         return proxies
 
     @property
@@ -454,18 +459,63 @@ class WorkflowProxy(object):
                 runnables.append(step.tool["run"])
         return runnables
 
+    def cwl_ids_to_index(self, step_proxies):
+        index = 0
+        cwl_ids_to_index = {}
+        for i, input_dict in enumerate(self._workflow.tool['inputs']):
+            cwl_ids_to_index[input_dict["id"]] = index
+            index += 1
+
+        for step_proxy in step_proxies:
+            cwl_ids_to_index[step_proxy.cwl_id] = index
+            index += 1
+
+        return cwl_ids_to_index
+
+    def input_connections_by_step(self, step_proxies):
+        cwl_ids_to_index = self.cwl_ids_to_index(step_proxies)
+
+        input_connections_by_step = []
+        for step_proxy in step_proxies:
+            input_connections_step = {}
+            cwl_inputs = step_proxy._step.tool["inputs"]
+            for cwl_input in cwl_inputs:
+                cwl_input_id = cwl_input["id"]
+                cwl_source_id = cwl_input["source"]
+                step_name, input_name = split_step_reference(cwl_input_id)
+                output_step_name, output_name = split_step_reference(cwl_source_id)
+                output_step_id = self.cwl_id + "#" + output_step_name
+                if output_step_id not in cwl_ids_to_index:
+                    template = "Output [%s] does not appear in ID-to-index map [%s]."
+                    msg = template % (output_step_id, cwl_ids_to_index)
+                    raise AssertionError(msg)
+
+                input_connections_step[input_name] = {
+                    "id": cwl_ids_to_index[output_step_id],
+                    "output_name": output_name,
+                    "input_type": "dataset"
+                }
+            input_connections_by_step.append(input_connections_step)
+
+        return input_connections_by_step
+
     def to_dict(self):
         name = os.path.basename(self._workflow_path)
         steps = {}
 
+        step_proxies = self.step_proxies()
+        input_connections_by_step = self.input_connections_by_step(step_proxies)
         index = 0
         for i, input_dict in enumerate(self._workflow.tool['inputs']):
-            index += 1
             steps[index] = self.cwl_input_to_galaxy_step(input_dict, i)
-
-        for i, step_proxy in enumerate(self.step_proxies()):
             index += 1
-            steps[index] = step_proxy.to_dict()
+
+        for i, step_proxy in enumerate(step_proxies):
+            input_connections = input_connections_by_step[i]
+            steps[index] = step_proxy.to_dict(input_connections)
+            print steps[index]
+            index += 1
+
 
         return {
             'name': name,
@@ -491,6 +541,26 @@ class WorkflowProxy(object):
         return cwl_obj.get("doc", None)
 
 
+def split_step_reference(step_reference):
+    """Split a CWL step input or output reference into step id and name."""
+    # Trim off the workflow id part of the reference.
+    assert "#" in step_reference
+    cwl_workflow_id, step_reference = step_reference.split("#", 1)
+
+    # Now just grab the step name and input/output name.
+    assert "#" not in step_reference
+    if "/" in step_reference:
+        step_name, io_name = step_reference.split("/", 1)
+    else:
+        # Referencing an input, not a step.
+        # In Galaxy workflows input steps have an implicit output named
+        # "output" for consistency with tools - in cwl land
+        # just the input name is referenced.
+        step_name = step_reference
+        io_name = "output"
+    return (step_name, io_name)
+
+
 class StepProxy(object):
 
     def __init__(self, workflow_proxy, step, index):
@@ -498,16 +568,19 @@ class StepProxy(object):
         self._step = step
         self._index = index
 
+    @property
+    def cwl_id(self):
+        return self._step.id
+
     def tool_references(self):
         # Return a list so we can handle subworkflows recursively in the future.
         return [self._step.embedded_tool]
 
-    def to_dict(self):
+    def to_dict(self, input_connections):
         # We are to the point where we need a content id for this. We got
         # figure that out - short term we can load everything up as an
         # in-memory tool and reference by the JSONLD ID I think. So workflow
         # proxy should force the loading of a tool.
-        print(self.tool_references()[0])
         tool_proxy = cwl_tool_object_to_proxy(self.tool_references()[0])
         tool_hash = build_tool_hash(tool_proxy.to_persistent_representation())
         return {
@@ -518,7 +591,7 @@ class StepProxy(object):
             "position": {"left": 0, "top": 0},
             "type": "tool",  # TODO: dispatch on type obviously...
             "annotation": self._workflow_proxy.cwl_object_to_annotation(self._step.tool),
-            "input_connections": {},  # TODO: This.
+            "input_connections": input_connections,
         }
 
 

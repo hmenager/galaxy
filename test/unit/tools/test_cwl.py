@@ -85,6 +85,11 @@ def test_workflow_of_files_proxy():
         print first_runnable
 
         assert len(galaxy_workflow_dict["steps"]) == 3
+        wc_step = galaxy_workflow_dict["steps"][1]
+        exp_step = galaxy_workflow_dict["steps"][2]
+        assert wc_step["input_connections"]
+        assert exp_step["input_connections"]
+
         print proxy._workflow
         print dir(proxy._workflow)
         print proxy._workflow.tool

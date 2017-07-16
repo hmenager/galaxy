@@ -72,7 +72,7 @@ def _normalize_inputs(steps, inputs, inputs_by):
             if possible_input_key in inputs:
                 inputs_key = possible_input_key
         if not inputs_key:
-            message = "Workflow cannot be run because an expected input step '%s' has no input dataset." % step.id
+            message = "Workflow cannot be run because an expected input step '%s' (%s) has no input dataset." % (step.id, step.label)
             raise exceptions.MessageException( message )
         normalized_inputs[ step.id ] = inputs[ inputs_key ]
     return normalized_inputs
