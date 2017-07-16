@@ -265,6 +265,15 @@ class BaseWorkflowsApiTestCase( api.ApiTestCase ):
         jobs = self._history_jobs( history_id )
         self.assertEqual( len( jobs ), n )
 
+    def _download_workflow(self, workflow_id, style=None):
+        params = {}
+        if style:
+            params = {"style": style}
+        download_response = self._get( "workflows/%s/download" % workflow_id, params )
+        self._assert_status_code_is( download_response, 200 )
+        downloaded_workflow = download_response.json()
+        return downloaded_workflow
+
 
 # Workflow API TODO:
 # - Allow history_id as param to workflow run action. (hist_id)
@@ -1984,15 +1993,6 @@ steps:
                 shared_workflow_id=workflow_id,
             )
         return self._post( route, import_data )
-
-    def _download_workflow(self, workflow_id, style=None):
-        params = {}
-        if style:
-            params = {"style": style}
-        download_response = self._get( "workflows/%s/download" % workflow_id, params )
-        self._assert_status_code_is( download_response, 200 )
-        downloaded_workflow = download_response.json()
-        return downloaded_workflow
 
     def _show_workflow(self, workflow_id):
         show_response = self._get( "workflows/%s" % workflow_id )
