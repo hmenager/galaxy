@@ -9,6 +9,8 @@ from .interface import PagesSource
 from .interface import ToolSource
 from .interface import ToolStdioExitCode
 from .output_actions import ToolOutputActionGroup
+from .output_objects import ToolOutputCollection
+from .output_objects import ToolOutputCollectionStructure
 from .output_objects import ToolOutput
 from .yaml import YamlInputSource
 
@@ -106,15 +108,28 @@ class CwlToolSource(ToolSource):
     def parse_outputs(self, tool):
         output_instances = self.tool_proxy.output_instances()
         outputs = odict()
+        output_collections = odict()
         output_defs = []
         for output_instance in output_instances:
             output_defs.append(self._parse_output(tool, output_instance))
+
         # TODO: parse outputs collections
         for output_def in output_defs:
-            outputs[output_def.name] = output_def
-        return outputs, odict()
+            if isinstance(output_def, ToolOutput):
+                outputs[output_def.name] = output_def
+            else:
+                outputs[output_def.name] = output_def
+                output_collections[output_def.name] = output_def
+        return outputs, output_collections
 
     def _parse_output(self, tool, output_instance):
+        output_type = output_instance.output_data_type
+        if isinstance(output_type, dict) and output_type.get("type") == "record":
+            return self._parse_output_record(tool, output_instance)
+        else:
+            return self._parse_output_data(tool, output_instance)
+
+    def _parse_output_data(self, tool, output_instance):
         name = output_instance.name
         # TODO: handle filters, actions, change_format
         output = ToolOutput( name )
@@ -134,6 +149,20 @@ class CwlToolSource(ToolSource):
         output.dataset_collector_descriptions = []
         output.actions = ToolOutputActionGroup( output, None )
         return output
+
+    def _parse_output_record(self, tool, output_instance):
+        name = output_instance.name
+        # TODO: clean output bindings and other non-structure information
+        # from this.
+        fields = output_instance.output_data_type.get("fields")
+        output_collection = ToolOutputCollection(
+            name,
+            ToolOutputCollectionStructure(
+                collection_type="record",
+                fields=fields,
+            ),
+        )
+        return output_collection
 
     def parse_requirements_and_containers(self):
         containers = []

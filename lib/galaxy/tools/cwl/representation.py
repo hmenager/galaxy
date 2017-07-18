@@ -19,7 +19,8 @@ GALAXY_TO_CWL_TYPES = {
     'float': 'float',
     'data': 'File',
     'boolean': 'boolean',
-    'text': 'text'
+    'text': 'text',
+    'data_collection': 'data_collection',
 }
 
 
@@ -35,15 +36,8 @@ def to_cwl_job(tool, param_dict, local_working_directory):
     def simple_value(input, param_dict_value, cwl_type=None):
         # Hmm... cwl_type isn't really the cwl type in every case,
         # like in the case of json for instance.
-        if cwl_type is None:
-            input_type = input.type
-            cwl_type = GALAXY_TO_CWL_TYPES[input_type]
 
-        if cwl_type == "null":
-            assert param_dict_value is None
-            return None
-        if cwl_type == "File":
-            dataset_wrapper = param_dict_value
+        def dataset_wrapper_to_file_json(dataset_wrapper):
             extra_files_path = dataset_wrapper.extra_files_path
             secondary_files_path = os.path.join(extra_files_path, "__secondary_files__")
             path = str(dataset_wrapper)
@@ -59,6 +53,17 @@ def to_cwl_job(tool, param_dict, local_working_directory):
 
             return {"location": path,
                     "class": "File"}
+
+        if cwl_type is None:
+            input_type = input.type
+            cwl_type = GALAXY_TO_CWL_TYPES[input_type]
+
+        if cwl_type == "null":
+            assert param_dict_value is None
+            return None
+        if cwl_type == "File":
+            dataset_wrapper = param_dict_value
+            return dataset_wrapper_to_file_json(dataset_wrapper)
         elif cwl_type == "integer":
             return int(str(param_dict_value))
         elif cwl_type == "long":
@@ -75,6 +80,11 @@ def to_cwl_job(tool, param_dict, local_working_directory):
             raw_value = param_dict_value.value
             log.info("raw_value is %s (%s)" % (raw_value, type(raw_value)))
             return json.loads(raw_value)
+        elif cwl_type == "data_collection":
+            rval = dict()  # TODO: THIS NEEDS TO BE ORDERED BUT odict not json serializable!
+            for key, value in param_dict_value.items():
+                rval[key] = dataset_wrapper_to_file_json(value)
+            return rval
         else:
             return str(param_dict_value)
 

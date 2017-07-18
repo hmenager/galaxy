@@ -39,6 +39,7 @@ SUPPORTED_TOOL_REQUIREMENTS = [
     "DockerRequirement",
     "EnvVarRequirement",
     "InlineJavascriptRequirement",
+    "ShellCommandRequirement",
 ]
 
 
@@ -703,6 +704,7 @@ def _simple_field_to_input_type_kwds(field, field_type=None):
         "double": INPUT_TYPE.INTEGER,
         "string": INPUT_TYPE.TEXT,
         "boolean": INPUT_TYPE.BOOLEAN,
+        "record": INPUT_TYPE.DATA_COLLECTON,
     }
 
     if field_type is None:
@@ -766,6 +768,7 @@ INPUT_TYPE = Bunch(
     BOOLEAN="boolean",
     SELECT="select",
     CONDITIONAL="conditional",
+    DATA_COLLECTON="data_collection",
 )
 
 
@@ -848,6 +851,9 @@ class InputInstance(object):
                 as_dict["value"] = "0"
             if self.input_type == INPUT_TYPE.FLOAT:
                 as_dict["value"] = "0.0"
+            elif self.input_type == INPUT_TYPE.DATA_COLLECTON:
+                as_dict["collection_type"] = "record"
+
         return as_dict
 
 
@@ -857,13 +863,15 @@ OUTPUT_TYPE = Bunch(
 )
 
 
+# TODO: Different subclasses - this is representing different types of things.
 class OutputInstance(object):
 
-    def __init__(self, name, output_data_type, output_type, path=None):
+    def __init__(self, name, output_data_type, output_type, path=None, fields=None):
         self.name = name
         self.output_data_type = output_data_type
         self.output_type = output_type
         self.path = path
+        self.fields = fields
 
 
 __all__ = (

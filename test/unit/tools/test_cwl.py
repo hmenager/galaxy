@@ -23,6 +23,17 @@ def test_tool_proxy():
     tool_proxy(_cwl_tool_path("draft3/parseInt-tool.cwl"))
 
 
+def test_tool_source_records():
+    record_output_path = _cwl_tool_path("v1.0/record-output.cwl")
+    tool_source = get_tool_source(record_output_path)
+    inputs = _inputs(tool_source)
+    assert len(inputs) == 1
+
+    output_data, output_collections = _outputs(tool_source)
+    assert len(output_data) == 0
+    assert len(output_collections) == 1
+
+
 def test_serialize_deserialize():
     tool = tool_proxy(_cwl_tool_path("draft3/cat1-tool.cwl"))
     ToolProxy.from_persistent_representation(tool.to_persistent_representation())

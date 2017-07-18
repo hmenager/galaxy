@@ -316,6 +316,18 @@ class CwlToolsTestCase( api.ApiTestCase ):
         output1 = self.dataset_populator.get_history_dataset_details( run_object.history_id, hid=2 )
         self.assertEquals(output1["extension"], "expression.json")
 
+    @skip_without_tool( "record-output" )
+    def test_record_output( self ):
+        run_object = self.dataset_populator.run_cwl_tool( "record-output", "test/functional/tools/cwl_tools/v1.0/record-output-job.json")
+        result_record = run_object.output_collection(0)
+        assert result_record["collection_type"] == "record"
+        record_elements = result_record["elements"]
+        first_element = record_elements[0]
+        assert first_element["element_identifier"] == "ofoo"
+        first_hda = first_element["object"]
+        output1_content = self.dataset_populator.get_history_dataset_content( run_object.history_id, hid=first_hda["hid"] )
+        assert "Call me Ishmael." in output1_content, "Expected contents of whale.txt, got [%s]" % output1_content
+
     # def test_dynamic_tool_execution( self ):
     #     workflow_tool_json = {
     #         'inputs': [{'inputBinding': {}, 'type': 'File', 'id': 'file:///home/john/workspace/galaxy/test/unit/tools/cwl_tools/draft3/count-lines2-wf.cwl#step1/wc/wc_file1'}],

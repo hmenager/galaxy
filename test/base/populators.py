@@ -54,34 +54,53 @@ def skip_without_tool( tool_id ):
     return method_wrapper
 
 
-# Note: Newer than planemo version as of 2/4/16, copy back into planemo
-def galactic_job_json(job, test_data_directory, upload_func):
-    state = {"uploaded": False}
+# Now this is the newer than the planemo version of this function as of 2017/7/18
+def galactic_job_json(job, test_data_directory, upload_func, collection_create_func):
+    datasets = []
+    dataset_collections = []
 
     def upload(file_path):
-        state["uploaded"] = True
         if not os.path.isabs(file_path):
             file_path = os.path.join(test_data_directory, file_path)
-
-        return upload_func(file_path)
+        _ensure_file_exists(file_path)
+        upload_response = upload_func(file_path)
+        dataset = upload_response["outputs"][0]
+        datasets.append((dataset, file_path))
+        dataset_id = dataset["id"]
+        return {"src": "hda", "id": dataset_id}
 
     def replacement_item(value):
         if not isinstance(value, dict):
             return value
 
         type_class = value.get("class", None)
-        if type_class != "File":
-            return value
+        if type_class == "File":
+            return replacement_file(value)
+        else:
+            return replacement_record(value)
 
-        # TODO: Dispatch on draft 3 vs v1.0+ tools here in the future.
-        file_path = value.get("path", None) or value.get("location", None)
+    def replacement_file(value):
+        file_path = value.get("location", None)
         if file_path is None:
             return value
 
-        upload_response = upload(file_path)
-        dataset_id = upload_response["outputs"][0]["id"]
+        return upload(file_path)
 
-        return {"src": "hda", "id": dataset_id}
+    def replacement_record(value):
+        collection_element_identifiers = []
+        for record_key, record_value in value.items():
+            if record_value.get("class") != "File":
+                raise NotImplementedError()
+
+            dataset = upload(record_value["location"])
+            collection_element = dataset.copy()
+            collection_element["name"] = record_key
+            collection_element_identifiers.append(collection_element)
+
+        collection = collection_create_func(collection_element_identifiers, "record")
+        dataset_collections.append(collection)
+        hdca_id = collection["id"]
+        return {"src": "hdca", "id": hdca_id}
 
     replace_keys = {}
     for key, value in iteritems(job):
@@ -94,7 +113,20 @@ def galactic_job_json(job, test_data_directory, upload_func):
             replace_keys[key] = new_list
 
     job.update(replace_keys)
-    return job, state["uploaded"]
+    return job, datasets
+
+
+def _ensure_file_exists(file_path):
+    if not os.path.exists(file_path):
+        template = "File [%s] does not exist - parent directory [%s] does %sexist, cwd is [%s]"
+        parent_directory = os.path.dirname(file_path)
+        message = template % (
+            file_path,
+            parent_directory,
+            "" if os.path.exists(parent_directory) else "not ",
+            os.getcwd(),
+        )
+        raise Exception(message)
 
 
 # Deprecated mixin, use dataset populator instead.
@@ -129,6 +161,9 @@ class CwlToolRun( object ):
 
     def output(self, output_index):
         return self.run_response["outputs"][output_index]
+
+    def output_collection(self, output_index):
+        return self.run_response["output_collections"][output_index]
 
 
 class BaseDatasetPopulator( object ):
@@ -242,7 +277,25 @@ class BaseDatasetPopulator( object ):
                 content=content
             )
 
-        job_as_dict, datasets_uploaded = galactic_job_json(job_as_dict, test_data_directory, upload_path)
+        def create_collection_func(element_identifiers, collection_type):
+            payload = {
+                "name": "dataset collection",
+                "instance_type": "history",
+                "history_id": history_id,
+                "element_identifiers": json.dumps(element_identifiers),
+                "collection_type": collection_type,
+                "fields": None if collection_type != "record" else "auto",
+            }
+            response = self._post( "dataset_collections", data=payload )
+            assert response.status_code == 200
+            return response.json()
+
+        job_as_dict, datasets_uploaded = galactic_job_json(
+            job_as_dict,
+            test_data_directory,
+            upload_path,
+            create_collection_func,
+        )
         if datasets_uploaded:
             self.wait_for_history( history_id=history_id, assert_ok=True )
         run_response = self.run_tool( tool_id, job_as_dict, history_id, inputs_representation="cwl", assert_ok=assert_ok )
