@@ -249,30 +249,28 @@ class CommandLineToolProxy(ToolProxy):
         return self._tool.tool.get('label')
 
     def input_instances(self):
-        return self._find_inputs(self._tool.inputs_record_schema)
+        input_records_schema = self._tool.inputs_record_schema
+        schema_type = input_records_schema["type"]
+        if schema_type in self._tool.schemaDefs:
+            input_records_schema = self._tool.schemaDefs[schema_type]
 
-    def _find_inputs(self, schema):
-        schema_type = schema["type"]
-        if isinstance(schema_type, list):
-            raise Exception("Union types not yet implemented.")
-        elif isinstance(schema_type, dict):
-            return self._find_inputs(schema_type)
-        else:
-            if schema_type in self._tool.schemaDefs:
-                schema = self._tool.schemaDefs[schema_type]
+        if input_records_schema["type"] != "record":
+            raise Exception("Unhandled CWL tool input structure")
 
-            if schema["type"] == "record":
-                return [_simple_field_to_input(_) for _ in schema["fields"]]
+        return [_outer_field_to_input_instance(_) for _ in input_records_schema["fields"]]
 
     def output_instances(self):
         outputs_schema = self._tool.outputs_record_schema
-        return self._find_outputs(outputs_schema)
+        schema_type = outputs_schema["type"]
+        if schema_type in self._tool.schemaDefs:
+            outputs_schema = self._tool.schemaDefs[schema_type]
 
-    def _find_outputs(self, schema):
+        if outputs_schema["type"] != "record":
+            raise Exception("Unhandled CWL tool output structure")
+
         rval = []
-        if not rval and schema["type"] == "record":
-            for output in schema["fields"]:
-                rval.append(_simple_field_to_output(output))
+        for output in outputs_schema["fields"]:
+            rval.append(_simple_field_to_output(output))
 
         return rval
 
@@ -518,7 +516,6 @@ class WorkflowProxy(object):
             print steps[index]
             index += 1
 
-
         return {
             'name': name,
             'steps': steps,
@@ -685,7 +682,7 @@ def _simple_field_union(field):
     return ConditionalInstance(name, case_input, case_options)
 
 
-def _simple_field_to_input(field):
+def _outer_field_to_input_instance(field):
     field_type = _field_to_field_type(field)
     if isinstance(field_type, list):
         # Length must be greater than 1...

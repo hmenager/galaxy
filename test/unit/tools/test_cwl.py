@@ -179,6 +179,9 @@ def test_optionial_output2():
 def test_sorttool():
     env_tool1 = _cwl_tool_path("draft3/sorttool.cwl")
     tool_source = get_tool_source(env_tool1)
+
+    assert tool_source.parse_id() == "sorttool"
+
     inputs = _inputs(tool_source)
     assert len(inputs) == 2
     bool_input = inputs[0]
@@ -188,6 +191,10 @@ def test_sorttool():
 
     assert file_input.parse_input_type() == "param"
     assert file_input.get("type") == "data", file_input.get("type")
+
+    output_data, output_collections = _outputs(tool_source)
+    assert len(output_data) == 1
+    assert len(output_collections) == 0
 
 
 def test_cat1():
@@ -204,6 +211,10 @@ def test_cat1():
 
     # User needs to specify if want to select boolean or not.
     assert null_or_bool_input.parse_input_type() == "conditional"
+
+    output_data, output_collections = _outputs(tool_source)
+    assert len(output_data) == 0
+    assert len(output_collections) == 0
 
 
 def test_tool_reload():
