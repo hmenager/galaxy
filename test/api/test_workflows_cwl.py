@@ -57,6 +57,36 @@ class CwlWorkflowsTestCase(BaseWorkflowsApiTestCase):
         """Test simple workflow v1.0/count-lines2-wf.cwl."""
         self._run_count_lines_wf("v1.0/count-lines2-wf.cwl")
 
+    def test_count_lines3_v1(self):
+        load_response = self._load_workflow("v1.0/count-lines3-wf.cwl")
+        self._assert_status_code_is(load_response, 200)
+        workflow = load_response.json()
+        workflow_id = workflow["id"]
+        history_id = self.dataset_populator.new_history()
+        hdca = self.dataset_collection_populator.create_list_in_history( history_id ).json()
+        inputs_map = {
+            "file1": {"src": "hdca", "id": hdca["id"]}
+        }
+        workflow_request = dict(
+            history="hist_id=%s" % history_id,
+            workflow_id=workflow_id,
+            inputs=json.dumps(inputs_map),
+            inputs_by="name",
+        )
+        url = "workflows/%s/invocations" % workflow_id
+        invocation_response = self._post(url, data=workflow_request)
+        self._assert_status_code_is(invocation_response, 200)
+        invocation_id = invocation_response.json()["id"]
+        self.wait_for_invocation_and_jobs(history_id, workflow_id, invocation_id)
+        hdca = self.dataset_populator.get_history_collection_details(history_id, hid=8)
+        assert hdca["collection_type"] == "list"
+        elements = hdca["elements"]
+        assert len(elements) == 3
+        element0 = elements[0]["object"]
+        assert element0["history_content_type"] == "dataset"
+        assert element0["state"] == "ok"
+        assert element0["file_ext"] == "expression.json"
+
     def _run_count_lines_wf(self, wf_path):
         load_response = self._load_workflow(wf_path)
         self._assert_status_code_is(load_response, 200)

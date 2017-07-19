@@ -40,6 +40,7 @@ SUPPORTED_TOOL_REQUIREMENTS = [
     "EnvVarRequirement",
     "InlineJavascriptRequirement",
     "ShellCommandRequirement",
+    "ScatterFeatureRequirement",
 ]
 
 
@@ -527,15 +528,24 @@ class WorkflowProxy(object):
         return id.rsplit("#", 1)[-1]
 
     def cwl_input_to_galaxy_step(self, input, i):
-        assert input["type"] == "File"
-        return {
+        input_type = input["type"]
+        input_as_dict = {
             "id": i,
             "label": self.jsonld_id_to_label(input["id"]),
             "position": {"left": 0, "top": 0},
-            "type": "data_input",  # TODO: dispatch on type obviously...
             "annotation": self.cwl_object_to_annotation(input),
             "input_connections": {},  # Should the Galaxy API really require this? - Seems to.
         }
+
+        if input_type == "File":
+            input_as_dict["type"] = "data_input"
+        elif isinstance(input_type, dict) and input_type.get("type") == "array" and input_type.get("items") == "File":
+            input_as_dict["type"] = "data_collection_input"
+            input_as_dict["collection_type"] = "list"
+        else:
+            raise NotImplementedError()
+
+        return input_as_dict
 
     def cwl_object_to_annotation(self, cwl_obj):
         return cwl_obj.get("doc", None)

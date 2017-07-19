@@ -117,6 +117,20 @@ def test_workflow_embedded_tools_proxy():
         assert exp_step["input_connections"]
 
 
+def test_workflow_scatter():
+    version = "v1.0"
+    proxy = workflow_proxy(_cwl_tool_path("%s/count-lines3-wf.cwl" % version))
+
+    step_proxies = proxy.step_proxies()
+    assert len(step_proxies) == 1
+
+    galaxy_workflow_dict = proxy.to_dict()
+    assert len(galaxy_workflow_dict["steps"]) == 2
+
+    wc_step = galaxy_workflow_dict["steps"][1]
+    assert wc_step["input_connections"]
+
+
 def test_load_proxy_simple():
     cat3 = _cwl_tool_path("draft3/cat3-tool.cwl")
     tool_source = get_tool_source(cat3)
