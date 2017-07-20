@@ -295,7 +295,21 @@ class WorkflowProgress( object ):
                         replacement = replacement[ 0 ]
             else:
                 is_data = input.type in ["data", "data_collection"]
-                replacement = self.replacement_for_connection( connection[ 0 ], is_data=is_data )
+                if len( connection ) == 1:
+                    replacement = self.replacement_for_connection( connection[ 0 ], is_data=is_data )
+                else:
+                    # We've mapped multiple individual inputs to a single parameter,
+                    # promote output to a collection.
+                    inputs = []
+                    for c in connection:
+                        input_from_connection = self.replacement_for_connection( c, is_data=is_data )
+                        inputs.append(input_from_connection)
+
+                    replacement = modules.ScatterOver(
+                        prefixed_name,
+                        inputs,
+                    )
+
         return replacement
 
     def replacement_for_connection( self, connection, is_data=True ):

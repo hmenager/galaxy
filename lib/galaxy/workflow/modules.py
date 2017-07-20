@@ -14,6 +14,7 @@ from galaxy import (
     web
 )
 from galaxy.dataset_collections import matching
+from galaxy.dataset_collections.structure import leaf, Tree
 from galaxy.exceptions import ToolMissingException
 from galaxy.jobs.actions.post import ActionBox
 from galaxy.model import PostJobAction
@@ -58,6 +59,7 @@ class WorkflowModule( object ):
 
     def __init__( self, trans, content_id=None, **kwds ):
         self.trans = trans
+        self.app = trans.app
         self.content_id = content_id
         self.state = DefaultToolState()
 
@@ -859,6 +861,25 @@ class ToolModule( WorkflowModule ):
         else:
             raise ToolMissingException( "Tool %s missing. Cannot recover runtime state." % self.tool_id )
 
+    def _check_for_scatters( self, step, tool, progress, tool_state ):
+        scatter_collector = ScatterOverCollector(
+            self.app
+        )
+
+        def callback( input, prefixed_name, **kwargs ):
+            replacement = progress.replacement_for_tool_input( step, input, prefixed_name )
+            log.info("replacement for %s is %s" % (prefixed_name, replacement))
+            if replacement:
+                if isinstance(replacement, ScatterOver):
+                    scatter_collector.add_scatter(replacement)
+
+            return NO_REPLACEMENT
+
+        visit_input_values( tool.inputs, tool_state, callback, no_replacement_value=NO_REPLACEMENT )
+
+        # TODO: num slices is bad - what about empty arrays.
+        return None if scatter_collector.num_slices == 0 else scatter_collector
+
     def execute( self, trans, progress, invocation, step ):
         tool = trans.app.toolbox.get_tool( step.tool_id, tool_version=step.tool_version, tool_hash=step.tool_hash )
         tool_state = step.state
@@ -869,10 +890,10 @@ class ToolModule( WorkflowModule ):
         collections_to_match = self._find_collections_to_match( tool, progress, step )
         # Have implicit collections...
         if collections_to_match.has_collections():
+            # Is a MatchingCollections
             collection_info = self.trans.app.dataset_collections_service.match_collections( collections_to_match )
         else:
-            collection_info = None
-
+            collection_info = self._check_for_scatters( step, tool, progress, make_dict_copy( tool_state.inputs ) )
         param_combinations = []
         if collection_info:
             iteration_elements_iter = collection_info.slice_collections()
@@ -1119,6 +1140,59 @@ def load_module_sections( trans ):
         }
 
     return module_sections
+
+
+class ScatterOverCollector(object):
+
+    def __init__(self, app):
+        self.inputs_per_name = {}
+        self.num_slices = 0
+        self.app = app
+
+    def add_scatter(self, scatter_over):
+        inputs = scatter_over.inputs
+        self.inputs_per_name[scatter_over.prefixed_name] = inputs
+        if self.num_slices > 0:
+            assert len(inputs) == self.num_slices
+        else:
+            self.num_slices = len(inputs)
+
+    def slice_collections(self):
+        slices = []
+        for i in range(self.num_slices):
+            this_slice = {}
+            for prefixed_name, inputs in self.inputs_per_name.items():
+                this_slice[prefixed_name] = SliceElement(inputs[i], str(i))
+            slices.append(this_slice)
+        return slices
+
+    @property
+    def structure(self):
+        collection_type_descriptions = self.app.dataset_collections_service.collection_type_descriptions
+        collection_type_description = collection_type_descriptions.for_collection_type("list")
+        children = []
+        for input in self.inputs_per_name.values()[0]:
+            children.append((input.element_identifier, leaf))
+
+        return Tree(children, collection_type_description)
+
+    @property
+    def implicit_inputs(self):
+        return None
+
+
+class SliceElement(object):
+
+    def __init__(self, dataset_instance, element_identifier):
+        self.dataset_instance = dataset_instance
+        self.element_identifier = element_identifier
+
+
+class ScatterOver(object):
+
+    def __init__(self, prefixed_name, inputs):
+        self.prefixed_name = prefixed_name
+        self.inputs = inputs
 
 
 class DelayedWorkflowEvaluation(Exception):

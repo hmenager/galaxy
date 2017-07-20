@@ -69,6 +69,10 @@ class MatchingCollections( object ):
         effective_structure = effective_structure.multiply( linked_structure )
         return None if effective_structure.is_leaf else effective_structure
 
+    @property
+    def implicit_inputs( self ):
+        return list( self.collection_info.collections.items() )
+
     @staticmethod
     def for_collections( collections_to_match, collection_type_descriptions ):
         if not collections_to_match.has_collections():

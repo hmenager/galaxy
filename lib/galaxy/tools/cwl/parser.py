@@ -15,7 +15,7 @@ from abc import ABCMeta, abstractmethod
 import six
 
 from galaxy.tools.hash import build_tool_hash
-from galaxy.util import safe_makedirs
+from galaxy.util import listify, safe_makedirs
 from galaxy.util.bunch import Bunch
 from galaxy.util.odict import odict
 
@@ -41,6 +41,7 @@ SUPPORTED_TOOL_REQUIREMENTS = [
     "InlineJavascriptRequirement",
     "ShellCommandRequirement",
     "ScatterFeatureRequirement",
+    "MultipleInputFeatureRequirement",
 ]
 
 
@@ -484,19 +485,24 @@ class WorkflowProxy(object):
             for cwl_input in cwl_inputs:
                 cwl_input_id = cwl_input["id"]
                 cwl_source_id = cwl_input["source"]
-                step_name, input_name = split_step_reference(cwl_input_id)
-                output_step_name, output_name = split_step_reference(cwl_source_id)
-                output_step_id = self.cwl_id + "#" + output_step_name
-                if output_step_id not in cwl_ids_to_index:
-                    template = "Output [%s] does not appear in ID-to-index map [%s]."
-                    msg = template % (output_step_id, cwl_ids_to_index)
-                    raise AssertionError(msg)
+                step_name, input_name = split_step_references(cwl_input_id, multiple=False)
+                # Consider only allow multiple if MultipleInputFeatureRequirement is enabled
+                for (output_step_name, output_name) in split_step_references(cwl_source_id):
+                    output_step_id = self.cwl_id + "#" + output_step_name
+                    if output_step_id not in cwl_ids_to_index:
+                        template = "Output [%s] does not appear in ID-to-index map [%s]."
+                        msg = template % (output_step_id, cwl_ids_to_index)
+                        raise AssertionError(msg)
 
-                input_connections_step[input_name] = {
-                    "id": cwl_ids_to_index[output_step_id],
-                    "output_name": output_name,
-                    "input_type": "dataset"
-                }
+                    if input_name not in input_connections_step:
+                        input_connections_step[input_name] = []
+
+                    input_connections_step[input_name].append({
+                        "id": cwl_ids_to_index[output_step_id],
+                        "output_name": output_name,
+                        "input_type": "dataset"
+                    })
+
             input_connections_by_step.append(input_connections_step)
 
         return input_connections_by_step
@@ -551,24 +557,34 @@ class WorkflowProxy(object):
         return cwl_obj.get("doc", None)
 
 
-def split_step_reference(step_reference):
+def split_step_references(step_references, multiple=True):
     """Split a CWL step input or output reference into step id and name."""
     # Trim off the workflow id part of the reference.
-    assert "#" in step_reference
-    cwl_workflow_id, step_reference = step_reference.split("#", 1)
+    step_references = listify(step_references)
+    split_references = []
 
-    # Now just grab the step name and input/output name.
-    assert "#" not in step_reference
-    if "/" in step_reference:
-        step_name, io_name = step_reference.split("/", 1)
+    for step_reference in step_references:
+        assert "#" in step_reference
+        cwl_workflow_id, step_reference = step_reference.split("#", 1)
+
+        # Now just grab the step name and input/output name.
+        assert "#" not in step_reference
+        if "/" in step_reference:
+            step_name, io_name = step_reference.split("/", 1)
+        else:
+            # Referencing an input, not a step.
+            # In Galaxy workflows input steps have an implicit output named
+            # "output" for consistency with tools - in cwl land
+            # just the input name is referenced.
+            step_name = step_reference
+            io_name = "output"
+        split_references.append((step_name, io_name))
+
+    if multiple:
+        return split_references
     else:
-        # Referencing an input, not a step.
-        # In Galaxy workflows input steps have an implicit output named
-        # "output" for consistency with tools - in cwl land
-        # just the input name is referenced.
-        step_name = step_reference
-        io_name = "output"
-    return (step_name, io_name)
+        assert len(split_references) == 1
+        return split_references[0]
 
 
 class StepProxy(object):

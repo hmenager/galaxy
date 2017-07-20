@@ -127,8 +127,23 @@ def test_workflow_scatter():
     galaxy_workflow_dict = proxy.to_dict()
     assert len(galaxy_workflow_dict["steps"]) == 2
 
+    # TODO: For CWL - deactivate implicit scattering Galaxy does
+    # and force annotation in the workflow of scattering? Maybe?
     wc_step = galaxy_workflow_dict["steps"][1]
     assert wc_step["input_connections"]
+
+
+def test_workflow_scatter_multiple_input():
+    version = "v1.0"
+    proxy = workflow_proxy(_cwl_tool_path("%s/count-lines4-wf.cwl" % version))
+
+    step_proxies = proxy.step_proxies()
+    assert len(step_proxies) == 1
+
+    galaxy_workflow_dict = proxy.to_dict()
+    assert len(galaxy_workflow_dict["steps"]) == 3
+    print galaxy_workflow_dict
+    assert False
 
 
 def test_load_proxy_simple():
