@@ -302,6 +302,11 @@ class CwlToolsTestCase( api.ApiTestCase ):
         run_object = self.dataset_populator.run_cwl_tool( "null-expression2-tool", "test/functional/tools/cwl_tools/draft3/empty.json", assert_ok=False)
         self._assert_status_code_is( run_object.run_response, 400 )
 
+    def test_data_default( self ):
+        # produces no output - just test the job runs okay.
+        # later come back and verify standard output of the job.
+        self.dataset_populator.run_cwl_tool( "default_path_custom_1", job={} )
+
     @skip_without_tool( "params" )
     def test_params1( self ):
         run_object = self.dataset_populator.run_cwl_tool( "params", "test/functional/tools/cwl_tools/draft3/empty.json")

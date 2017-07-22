@@ -306,6 +306,8 @@ class JobProxy(object):
         self._cwl_job = None
         self._is_command_line_job = None
 
+        self._normalize_job()
+
     def cwl_job(self):
         self._ensure_cwl_job_initialized()
         return self._cwl_job
@@ -330,6 +332,21 @@ class JobProxy(object):
                 use_container=False,
             ))
             self._is_command_line_job = hasattr(self._cwl_job, "command_line")
+
+    def _normalize_job(self):
+        # Somehow reuse whatever causes validate in cwltool... maybe?
+        process.fillInDefaults(self._tool_proxy._tool.tool["inputs"], self._input_dict)
+        # TODO: Why doesn't fillInDefault fill in locations instead of paths?
+
+        def pathToLoc(p):
+            if "location" not in p and "path" in p:
+                p["location"] = p["path"]
+                del p["path"]
+        process.visit_class(self._input_dict, ("File", "Directory"), pathToLoc)
+        process.normalizeFilesDirs(self._input_dict)
+        # TODO: validate like cwltool process _init_job.
+        #    validate.validate_ex(self.names.get_name("input_record_schema", ""), builder.job,
+        #                         strict=False, logger=_logger_validation_warnings)
 
     def _select_resources(self, request):
         new_request = request.copy()
