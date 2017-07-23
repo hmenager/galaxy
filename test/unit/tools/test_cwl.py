@@ -1,5 +1,12 @@
 
 import os
+import sys
+import tempfile
+import shutil
+
+from unittest import TestCase
+
+import galaxy.model
 
 from galaxy.tools.cwl import tool_proxy
 from galaxy.tools.cwl.parser import ToolProxy
@@ -7,9 +14,14 @@ from galaxy.tools.cwl import workflow_proxy
 
 from galaxy.tools.parser.factory import get_tool_source
 
+import tools_support
+
+unit_root = os.path.abspath( os.path.join( os.path.dirname( __file__ ), os.pardir ) )
+sys.path.insert( 1, unit_root )
+from unittest_utils import galaxy_mock
 
 TESTS_DIRECTORY = os.path.dirname(__file__)
-CWL_TOOLS_DIRECTORY = os.path.join(TESTS_DIRECTORY, "cwl_tools")
+CWL_TOOLS_DIRECTORY = os.path.abspath(os.path.join(TESTS_DIRECTORY, "cwl_tools"))
 
 
 def test_tool_proxy():
@@ -30,7 +42,7 @@ def test_tool_source_records():
     assert len(inputs) == 1
 
     output_data, output_collections = _outputs(tool_source)
-    assert len(output_data) == 0
+    assert len(output_data) == 1
     assert len(output_collections) == 1
 
 
@@ -142,8 +154,6 @@ def test_workflow_scatter_multiple_input():
 
     galaxy_workflow_dict = proxy.to_dict()
     assert len(galaxy_workflow_dict["steps"]) == 3
-    print galaxy_workflow_dict
-    assert False
 
 
 def test_load_proxy_simple():
@@ -268,11 +278,59 @@ def test_tool_reload():
     _inputs(tool_source)
 
 
+class CwlToolObjectTestCase( TestCase, tools_support.UsesApp, tools_support.UsesTools ):
+
+    def setUp(self):
+        self.test_directory = tempfile.mkdtemp()
+        self.app = galaxy_mock.MockApp()
+        self.history = galaxy.model.History()
+        self.trans = galaxy_mock.MockTrans( history=self.history )
+
+    def tearDown( self ):
+        shutil.rmtree( self.test_directory )
+
+
+    def test_default_data_inputs(self):
+        self._init_tool(tool_path=_cwl_tool_path("v1.0/default_path.cwl"))
+        print("TOOL IS %s" % self.tool)
+        hda = self._new_hda()
+        from galaxy.tools.cwl import to_cwl_job
+        from galaxy.tools.parameters import populate_state
+        errors = {}
+        cwl_inputs = {
+            "file1": {"src": "hda", "id": self.app.security.encode_id(hda.id)}
+        }
+        inputs = self.tool.inputs_from_dict({"inputs": cwl_inputs, "inputs_representation": "cwl"})
+        print inputs
+        populate_state(self.trans, self.tool.inputs, {}, inputs, errors)
+        print inputs
+        input_json = to_cwl_job(self.tool, inputs, self.test_directory)
+        print input_json
+        assert False
+
+    def _new_hda( self ):
+        hda = galaxy.model.HistoryDatasetAssociation(history=self.history)
+        hda.visible = True
+        hda.dataset = galaxy.model.Dataset()
+        self.app.model.context.add( hda )
+        self.app.model.context.flush( )
+        return hda
+
+
 def _outputs(tool_source):
     return tool_source.parse_outputs(object())
 
 
-def _inputs(tool_source):
+def get_cwl_tool_source(path):
+    path = _cwl_tool_path(path)
+    return get_tool_source(path)
+
+
+def _inputs(tool_source=None, path=None):
+    if tool_source is None:
+        path = _cwl_tool_path(path)
+        tool_source = get_tool_source(path)
+
     input_pages = tool_source.parse_input_pages()
     assert input_pages.inputs_defined
     page_sources = input_pages.page_sources
