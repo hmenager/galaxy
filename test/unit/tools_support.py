@@ -74,13 +74,18 @@ class UsesTools( object ):
         self,
         tool_contents=SIMPLE_TOOL_CONTENTS,
         filename="tool.xml",
-        version="1.0"
+        version="1.0",
+        tool_path=None,
     ):
+        if tool_path is None:
+            filename = filename or "tool.xml"
+            self.tool_file = os.path.join( self.test_directory, filename )
+            contents_template = string.Template( tool_contents or SIMPLE_TOOL_CONTENTS )
+            tool_contents = contents_template.safe_substitute( dict( version=version ) )
+            self.__write_tool( tool_contents )
+        else:
+            self.tool_file = tool_path
         self._init_app_for_tools()
-        self.tool_file = os.path.join( self.test_directory, filename )
-        contents_template = string.Template( tool_contents )
-        tool_contents = contents_template.safe_substitute( dict( version=version ) )
-        self.__write_tool( tool_contents )
         return self.__setup_tool( )
 
     def _init_app_for_tools( self ):
