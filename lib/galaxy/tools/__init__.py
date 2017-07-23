@@ -68,7 +68,7 @@ from galaxy.tools.parser import (
     get_tool_source_from_representation,
     ToolOutputCollectionPart
 )
-from galaxy.tools.cwl import needs_shell_quoting, shellescape
+from galaxy.tools.cwl import needs_shell_quoting, shellescape, to_galaxy_parameters
 from galaxy.tools.parser.xml import XmlPageSource
 from galaxy.tools.toolbox import BaseGalaxyToolBox
 from galaxy.util import (
@@ -1228,6 +1228,18 @@ class Tool( object, Dictifiable ):
         #       outputs?
         return True
 
+    def inputs_from_dict(self, as_dict):
+        """Extra inputs from input dictionary (e.g. API payload).
+
+        Translate for tool type as needed.
+        """
+        inputs = as_dict.get( 'inputs', {} )
+        inputs_representation = as_dict.get( 'inputs_representation', 'galaxy' )
+        if inputs_representation != "galaxy":
+            raise exceptions.RequestParameterInvalidException("Only galaxy inputs representation is allowed for normal tools.")
+        # TODO: Consider <>.
+        return inputs
+
     def new_state( self, trans ):
         """
         Create a new `DefaultToolState` for this tool. It will be initialized
@@ -2381,6 +2393,23 @@ class CwlTool( Tool ):
         if cwl_tool_proxy is None:
             raise Exception("CwlTool.parse() called on tool source not defining a proxy object to underlying CWL tool.")
         self._cwl_tool_proxy = cwl_tool_proxy
+
+    def inputs_from_dict(self, as_dict):
+        """Extra inputs from input dictionary (e.g. API payload).
+
+        Translate for tool type as needed.
+        """
+        inputs = as_dict.get( 'inputs', {} )
+        inputs_representation = as_dict.get( 'inputs_representation', 'galaxy' )
+        if inputs_representation in ["galaxy", "cwl"]:
+            raise exceptions.RequestParameterInvalidException("Inputs representation must be galaxy or cwl.")
+
+        if inputs_representation == "cwl":
+            log.info("inputs b[%s]" % inputs)
+            inputs = to_galaxy_parameters( self, inputs )
+            log.info("inputs b[%s]" % inputs)
+
+        return inputs
 
 
 class DataManagerTool( OutputParameterJSONTool ):
