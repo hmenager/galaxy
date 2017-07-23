@@ -335,14 +335,14 @@ class JobProxy(object):
 
     def _normalize_job(self):
         # Somehow reuse whatever causes validate in cwltool... maybe?
-        process.fillInDefaults(self._tool_proxy._tool.tool["inputs"], self._input_dict)
-        # TODO: Why doesn't fillInDefault fill in locations instead of paths?
-
         def pathToLoc(p):
             if "location" not in p and "path" in p:
                 p["location"] = p["path"]
                 del p["path"]
         process.visit_class(self._input_dict, ("File", "Directory"), pathToLoc)
+
+        process.fillInDefaults(self._tool_proxy._tool.tool["inputs"], self._input_dict)
+        # TODO: Why doesn't fillInDefault fill in locations instead of paths?
         process.normalizeFilesDirs(self._input_dict)
         # TODO: validate like cwltool process _init_job.
         #    validate.validate_ex(self.names.get_name("input_record_schema", ""), builder.job,

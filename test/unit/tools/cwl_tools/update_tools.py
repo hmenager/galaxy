@@ -53,6 +53,7 @@ CWL_FILES = {
         "count-lines4-job.json",
         "count-lines4-wf.cwl",  # ScatterFeatureRequirement, MultipleInputFeatureRequirement (File, File) -> int[]
         "count-lines5-wf.cwl",  # default input file :(
+        "default_path.cwl",
         "hello.txt",
         "parseInt-tool.cwl",
         "record-output-job.json",

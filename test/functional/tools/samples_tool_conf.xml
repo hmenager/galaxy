@@ -142,6 +142,7 @@
   <tool file="cwl_tools/draft3_custom/optional-output2.cwl" />
   <tool file="cwl_tools/draft3_custom/showindex1.cwl" />
 
+  <tool file="cwl_tools/v1.0/default_path.cwl" />
   <tool file="cwl_tools/v1.0_custom/default_path_custom_1.cwl" />
   <tool file="cwl_tools/v1.0_custom/md5sum_non_strict.cwl" />
   <tool file="cwl_tools/v1.0/record-output.cwl" />

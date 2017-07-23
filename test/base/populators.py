@@ -5,6 +5,7 @@ import time
 from operator import itemgetter
 
 import requests
+import yaml
 
 from pkg_resources import resource_string
 from six import iteritems, StringIO
@@ -80,7 +81,7 @@ def galactic_job_json(job, test_data_directory, upload_func, collection_create_f
             return replacement_record(value)
 
     def replacement_file(value):
-        file_path = value.get("location", None)
+        file_path = value.get("location", None) or value.get("path", None)
         if file_path is None:
             return value
 
@@ -262,10 +263,12 @@ class BaseDatasetPopulator( object ):
         if json_path is not None:
             assert job is None
             with open( json_path, "r" ) as f:
-                job_as_dict = json.load( f )
+                if json_path.endswith(".yml") or json.path.endswith(".yaml"):
+                    job_as_dict = yaml.load( f )
+                else:
+                    job_as_dict = json.load( f )
         else:
             job_as_dict = job
-
         if history_id is None:
             history_id = self.new_history()
 

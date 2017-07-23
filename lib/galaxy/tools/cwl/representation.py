@@ -20,8 +20,16 @@ GALAXY_TO_CWL_TYPES = {
     'data': 'File',
     'boolean': 'boolean',
     'text': 'text',
-    'data_collection': 'data_collection',
+    'data_collection': 'data_collection',  # TODO: This seems wrong - refine.
 }
+
+
+def galaxy_type_for_cwl_type(cwl_type):
+    for key, value in GALAXY_TO_CWL_TYPES.items():
+        if value == cwl_type:
+            return key
+
+    raise Exception("Unable to find galaxy type for cwl type %s" % cwl_type)
 
 
 def to_cwl_job(tool, param_dict, local_working_directory):
@@ -171,7 +179,8 @@ def to_galaxy_parameters(tool, as_dict):
                 )
             galaxy_request["%s|_cwl__type_" % input_name] = cwl_type
             if cwl_type != "null":
-                current_case_index = input.get_current_case(cwl_type)
+                galaxy_type = galaxy_type_for_cwl_type(cwl_type)
+                current_case_index = input.get_current_case(galaxy_type)
                 current_case_inputs = input.cases[ current_case_index ].inputs
                 current_case_input = current_case_inputs[ "_cwl__value_" ]
                 galaxy_value = from_simple_value(current_case_input, as_dict_value, cwl_type)

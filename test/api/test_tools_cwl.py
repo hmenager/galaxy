@@ -302,11 +302,19 @@ class CwlToolsTestCase( api.ApiTestCase ):
         run_object = self.dataset_populator.run_cwl_tool( "null-expression2-tool", "test/functional/tools/cwl_tools/draft3/empty.json", assert_ok=False)
         self._assert_status_code_is( run_object.run_response, 400 )
 
+    @skip_without_tool( "default_path" )
+    def test_default_path_override( self ):
+        run_object = self.dataset_populator.run_cwl_tool( "default_path", "test/functional/tools/cwl_tools/v1.0/default_path_job.yml" )
+        output1_content = self.dataset_populator.get_history_dataset_content( run_object.history_id )
+        assert output1_content == "Hello World!"
+
     @skip_without_tool( "default_path_custom_1" )
-    def test_data_default( self ):
+    def test_default_path( self ):
         # produces no output - just test the job runs okay.
         # later come back and verify standard output of the job.
-        self.dataset_populator.run_cwl_tool( "default_path_custom_1", job={} )
+        run_object = self.dataset_populator.run_cwl_tool( "default_path_custom_1", job={} )
+        stdout = self._get_job_stdout( run_object.job_id )
+        assert "this is the test file that will be used when calculating an md5sum" in stdout
 
     @skip_without_tool( "params" )
     def test_params1( self ):
