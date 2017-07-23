@@ -13,7 +13,7 @@ import galaxy.datatypes.registry
 import galaxy.model
 from galaxy.jobs import NoopQueue
 from galaxy.model import mapping
-from galaxy.tools import Tool
+from galaxy.tools import create_tool_from_source
 from galaxy.tools.deps.containers import NullContainerFinder
 from galaxy.tools.parser import get_tool_source
 from galaxy.util.bunch import Bunch
@@ -87,7 +87,7 @@ class UsesTools( object ):
 
     def __setup_tool( self ):
         tool_source = get_tool_source( self.tool_file )
-        self.tool = Tool( self.tool_file, tool_source, self.app )
+        self.tool = create_tool_from_source(self.app, tool_source, config_file=self.tool_file)
         if getattr( self, "tool_action", None ):
             self.tool.tool_action = self.tool_action
         return self.tool
