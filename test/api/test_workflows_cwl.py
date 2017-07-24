@@ -40,6 +40,22 @@ class CwlWorkflowsTestCase(BaseWorkflowsApiTestCase):
         """Test simple workflow v1.0/count-lines1-wf.cwl."""
         self._run_count_lines_wf("v1.0/count-lines1-wf.cwl")
 
+    def test_count_line1_v1_json(self):
+        run_object = self._run_workflow_job("v1.0/count-lines1-wf.cwl", "v1.0/wc-job.json")
+        self._check_countlines_wf(run_object.invocation_id, run_object.workflow_id, expected_count=16)
+
+    def _run_workflow_job(self, workflow_path, job_path):
+        workflow_path = os.path.join(cwl_tool_directory, workflow_path)
+        job_path = os.path.join(cwl_tool_directory, job_path)
+        run_object = self.dataset_populator.run_cwl_artifact(
+            workflow_path,
+            job_path,
+            history_id=self.history_id,
+            tool_or_workflow="workflow",
+        )
+        self.wait_for_invocation_and_jobs(self.history_id, run_object.workflow_id, run_object.invocation_id)
+        return run_object
+
     def test_count_line1_draft3(self):
         """Test simple workflow draft3/count-lines1-wf.cwl."""
         self._run_count_lines_wf("draft3/count-lines1-wf.cwl")
@@ -76,6 +92,23 @@ class CwlWorkflowsTestCase(BaseWorkflowsApiTestCase):
         }
         invocation_id = self._invoke(inputs_map, workflow_id)
         self.wait_for_invocation_and_jobs(self.history_id, workflow_id, invocation_id)
+        self.dataset_populator.get_history_collection_details(self.history_id, hid=5)
+
+    def test_count_lines4_json(self):
+        self._run_workflow_job("v1.0/count-lines4-wf.cwl", "v1.0/count-lines4-job.json")
+        self.dataset_populator.get_history_collection_details(self.history_id, hid=5)
+
+    def test_scatter_wf1_v1(self):
+        workflow_id = self._load_workflow("v1.0/scatter-wf1.cwl")
+
+        hda1 = self.dataset_populator.new_dataset(self.history_id, content="hello world\nhello all\nhello all in world\nhello")
+        hda2 = self.dataset_populator.new_dataset(self.history_id, content="moo\ncow\nthat\nis\nall")
+        inputs_map = {
+            "file1": {"src": "hda", "id": hda1["id"]},
+            "file2": {"src": "hda", "id": hda2["id"]}
+        }
+        invocation_id = self._invoke(inputs_map, workflow_id)
+        self.wait_for_invocation_and_jobs(self.history_id, workflow_id, invocation_id)
         hdca = self.dataset_populator.get_history_collection_details(self.history_id, hid=5)
 
     def _run_count_lines_wf(self, wf_path):
@@ -85,9 +118,12 @@ class CwlWorkflowsTestCase(BaseWorkflowsApiTestCase):
             "file1": {"src": "hda", "id": hda1["id"]}
         }
         invocation_id = self._invoke(inputs_map, workflow_id)
+        self._check_countlines_wf(invocation_id, workflow_id)
+
+    def _check_countlines_wf(self, invocation_id, workflow_id, expected_count=4):
         self.wait_for_invocation_and_jobs(self.history_id, workflow_id, invocation_id)
         output = self.dataset_populator.get_history_dataset_content(self.history_id, hid=2)
-        assert re.search(r"\s+4", output)
+        assert re.search(r"\s+%d" % expected_count, output), output
 
     def _invoke(self, inputs, workflow_id):
         workflow_request = dict(

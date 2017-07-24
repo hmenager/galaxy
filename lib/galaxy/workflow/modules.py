@@ -1178,7 +1178,7 @@ class ScatterOverCollector(object):
 
     @property
     def implicit_inputs(self):
-        return None
+        return []
 
 
 class SliceElement(object):

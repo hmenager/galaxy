@@ -69,6 +69,7 @@ CWL_FILES = {
         "wc2-tool.cwl",
         "wc3-tool.cwl",
         "wc4-tool.cwl",
+        "wc-job.json",
         "whale.txt",
     ]
 }

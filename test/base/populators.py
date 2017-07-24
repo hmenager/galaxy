@@ -71,7 +71,9 @@ def galactic_job_json(job, test_data_directory, upload_func, collection_create_f
         return {"src": "hda", "id": dataset_id}
 
     def replacement_item(value):
-        if not isinstance(value, dict):
+        if isinstance(value, list):
+            return replacement_list(value)
+        elif not isinstance(value, dict):
             return value
 
         type_class = value.get("class", None)
@@ -86,6 +88,12 @@ def galactic_job_json(job, test_data_directory, upload_func, collection_create_f
             return value
 
         return upload(file_path)
+
+    def replacement_list(value):
+        new_list = []
+        for item in value:
+            new_list.append(replacement_item(item))
+        return new_list
 
     def replacement_record(value):
         collection_element_identifiers = []
@@ -105,13 +113,7 @@ def galactic_job_json(job, test_data_directory, upload_func, collection_create_f
 
     replace_keys = {}
     for key, value in iteritems(job):
-        if isinstance(value, dict):
-            replace_keys[key] = replacement_item(value)
-        elif isinstance(value, list):
-            new_list = []
-            for item in value:
-                new_list.append(replacement_item(item))
-            replace_keys[key] = new_list
+        replace_keys[key] = replacement_item(value)
 
     job.update(replace_keys)
     return job, datasets
@@ -165,6 +167,13 @@ class CwlToolRun( object ):
 
     def output_collection(self, output_index):
         return self.run_response["output_collections"][output_index]
+
+
+class CwlWorkflowRun( object ):
+
+    def __init__(self, workflow_id, invocation_id):
+        self.workflow_id = workflow_id
+        self.invocation_id = invocation_id
 
 
 class BaseDatasetPopulator( object ):
@@ -257,7 +266,9 @@ class BaseDatasetPopulator( object ):
         else:
             return tool_response
 
-    def run_cwl_tool( self, tool_id, json_path=None, job=None, test_data_directory=None, history_id=None, assert_ok=True ):
+    def run_cwl_artifact(
+        self, tool_id, json_path=None, job=None, test_data_directory=None, history_id=None, assert_ok=True, tool_or_workflow="tool",
+    ):
         if test_data_directory is None and json_path is not None:
             test_data_directory = os.path.dirname(json_path)
         if json_path is not None:
@@ -301,17 +312,42 @@ class BaseDatasetPopulator( object ):
         )
         if datasets_uploaded:
             self.wait_for_history( history_id=history_id, assert_ok=True )
-        run_response = self.run_tool( tool_id, job_as_dict, history_id, inputs_representation="cwl", assert_ok=assert_ok )
-        run_object = CwlToolRun( history_id, run_response )
-        if assert_ok:
-            try:
-                final_state = self.wait_for_job( run_object.job_id )
-                assert final_state == "ok"
-            except Exception:
-                self._summarize_history_errors( history_id )
-                raise
+        if tool_or_workflow == "tool":
+            run_response = self.run_tool( tool_id, job_as_dict, history_id, inputs_representation="cwl", assert_ok=assert_ok )
+            run_object = CwlToolRun( history_id, run_response )
+            if assert_ok:
+                try:
+                    final_state = self.wait_for_job( run_object.job_id )
+                    assert final_state == "ok"
+                except Exception:
+                    self._summarize_history_errors( history_id )
+                    raise
 
-        return run_object
+            return run_object
+        else:
+            route = "workflows"
+            path = os.path.join(tool_id)
+            data = dict(
+                from_path=path,
+            )
+            upload_response = self._post(route, data=data)
+            api_asserts.assert_status_code_is(upload_response, 200)
+            workflow = upload_response.json()
+            workflow_id = workflow["id"]
+
+            workflow_request = dict(
+                history="hist_id=%s" % history_id,
+                workflow_id=workflow_id,
+                inputs=json.dumps(job_as_dict),
+                inputs_by="name",
+            )
+            url = "workflows/%s/invocations" % workflow_id
+            invocation_response = self._post(url, data=workflow_request)
+            api_asserts.assert_status_code_is(invocation_response, 200)
+            invocation_id = invocation_response.json()["id"]
+            return CwlWorkflowRun(workflow_id, invocation_id)
+
+    run_cwl_tool = run_cwl_artifact
 
     def get_history_dataset_content( self, history_id, wait=True, **kwds ):
         dataset_id = self.__history_content_id( history_id, wait=wait, **kwds )
