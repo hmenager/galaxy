@@ -71,7 +71,7 @@ class MatchingCollections( object ):
 
     @property
     def implicit_inputs( self ):
-        return list( self.collection_info.collections.items() )
+        return list( self.collections.items() )
 
     @staticmethod
     def for_collections( collections_to_match, collection_type_descriptions ):
