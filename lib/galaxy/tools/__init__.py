@@ -2401,13 +2401,11 @@ class CwlTool( Tool ):
         """
         inputs = as_dict.get( 'inputs', {} )
         inputs_representation = as_dict.get( 'inputs_representation', 'galaxy' )
-        if inputs_representation in ["galaxy", "cwl"]:
+        if inputs_representation not in ["galaxy", "cwl"]:
             raise exceptions.RequestParameterInvalidException("Inputs representation must be galaxy or cwl.")
 
         if inputs_representation == "cwl":
-            log.info("inputs b[%s]" % inputs)
             inputs = to_galaxy_parameters( self, inputs )
-            log.info("inputs b[%s]" % inputs)
 
         return inputs
 

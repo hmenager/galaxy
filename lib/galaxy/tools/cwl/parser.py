@@ -25,6 +25,7 @@ from .cwltool_deps import (
     process,
     workflow,
 )
+from .representation import field_to_field_type, INPUT_TYPE, type_descriptions_for_field_types
 
 from .schema import non_strict_schema_loader, schema_loader
 
@@ -251,7 +252,7 @@ class CommandLineToolProxy(ToolProxy):
     def label(self):
         return self._tool.tool.get('label')
 
-    def input_instances(self):
+    def input_fields(self):
         input_records_schema = self._tool.inputs_record_schema
         schema_type = input_records_schema["type"]
         if schema_type in self._tool.schemaDefs:
@@ -260,7 +261,10 @@ class CommandLineToolProxy(ToolProxy):
         if input_records_schema["type"] != "record":
             raise Exception("Unhandled CWL tool input structure")
 
-        return [_outer_field_to_input_instance(_) for _ in input_records_schema["fields"]]
+        return input_records_schema["fields"]
+
+    def input_instances(self):
+        return [_outer_field_to_input_instance(_) for _ in self.input_fields()]
 
     def output_instances(self):
         outputs_schema = self._tool.outputs_record_schema
@@ -339,9 +343,8 @@ class JobProxy(object):
             if "location" not in p and "path" in p:
                 p["location"] = p["path"]
                 del p["path"]
-        process.visit_class(self._input_dict, ("File", "Directory"), pathToLoc)
-
         process.fillInDefaults(self._tool_proxy._tool.tool["inputs"], self._input_dict)
+        process.visit_class(self._input_dict, ("File", "Directory"), pathToLoc)
         # TODO: Why doesn't fillInDefault fill in locations instead of paths?
         process.normalizeFilesDirs(self._input_dict)
         # TODO: validate like cwltool process _init_job.
@@ -670,18 +673,17 @@ class ExternalWorkflowToolReference(WorkflowToolReference):
     pass
 
 
-def _simple_field_union(field):
-    field_type = _field_to_field_type(field)  # Must be a list if in here?
-
-    def any_of_in_field_type(types):
-        return any([t in field_type for t in types])
+def _outer_field_to_input_instance(field):
+    field_type = field_to_field_type(field)  # Must be a list if in here?
+    if not isinstance(field_type, list):
+        field_type = [field_type]
 
     name, label, description = _field_metadata(field)
 
     case_name = "_cwl__type_"
     case_label = "Specify Parameter %s As" % label
 
-    def value_input(**kwds):
+    def value_input(type_description):
         value_name = "_cwl__value_"
         value_label = label
         value_description = description
@@ -689,100 +691,56 @@ def _simple_field_union(field):
             value_name,
             value_label,
             value_description,
-            **kwds
+            input_type=type_description.galaxy_param_type,
+            collection_type=type_description.collection_type,
         )
 
     select_options = []
     case_options = []
-    if "null" in field_type:
-        select_options.append({"value": "null", "label": "None", "selected": True})
-        case_options.append(("null", []))
-    if any_of_in_field_type(["Any", "string"]):
-        select_options.append({"value": "string", "label": "Simple String"})
-        case_options.append(("string", [value_input(input_type=INPUT_TYPE.TEXT)]))
-    if any_of_in_field_type(["Any", "boolean"]):
-        select_options.append({"value": "boolean", "label": "Boolean"})
-        case_options.append(("boolean", [value_input(input_type=INPUT_TYPE.BOOLEAN)]))
-    if any_of_in_field_type(["Any", "int"]):
-        select_options.append({"value": "int", "label": "Integer"})
-        case_options.append(("int", [value_input(input_type=INPUT_TYPE.INTEGER)]))
-    if any_of_in_field_type(["Any", "float"]):
-        select_options.append({"value": "float", "label": "Floating Point Number"})
-        case_options.append(("float", [value_input(input_type=INPUT_TYPE.FLOAT)]))
-    if any_of_in_field_type(["Any", "File"]):
-        select_options.append({"value": "data", "label": "Dataset"})
-        case_options.append(("data", [value_input(input_type=INPUT_TYPE.DATA)]))
-    if "Any" in field_type:
-        select_options.append({"value": "json", "label": "JSON Data Structure"})
-        case_options.append(("json", [value_input(input_type=INPUT_TYPE.TEXT, area=True)]))
+    type_descriptions = type_descriptions_for_field_types(field_type)
+    for type_description in type_descriptions:
+        select_options.append({"value": type_description.name, "label": type_description.label})
+        input_instances = []
+        if type_description.name == "null":
+            print("better be false! %s" % type_description.uses_param)
+        if type_description.uses_param():
+            input_instances.append(value_input(type_description))
+            print("ii %s" % [i.to_dict() for i in input_instances])
+        case_options.append((type_description.name, input_instances))
 
-    case_input = SelectInputInstance(
-        name=case_name,
-        label=case_label,
-        description=False,
-        options=select_options,
-    )
+    # If there is more than one way to represent this parameter - produce a conditional
+    # requesting user to ask for what form they want to submit the data in, else just map
+    # a simple Galaxy parameter.
+    if len(case_options) > 1:
+        case_input = SelectInputInstance(
+            name=case_name,
+            label=case_label,
+            description=False,
+            options=select_options,
+        )
 
-    return ConditionalInstance(name, case_input, case_options)
-
-
-def _outer_field_to_input_instance(field):
-    field_type = _field_to_field_type(field)
-    if isinstance(field_type, list):
-        # Length must be greater than 1...
-        return _simple_field_union(field)
-
-    name, label, description = _field_metadata(field)
-
-    type_kwds = _simple_field_to_input_type_kwds(field)
-    return InputInstance(name, label, description, **type_kwds)
-
-
-def _simple_field_to_input_type_kwds(field, field_type=None):
-    simple_map_type_map = {
-        "File": INPUT_TYPE.DATA,
-        "int": INPUT_TYPE.INTEGER,
-        "long": INPUT_TYPE.INTEGER,
-        "float": INPUT_TYPE.INTEGER,
-        "double": INPUT_TYPE.INTEGER,
-        "string": INPUT_TYPE.TEXT,
-        "boolean": INPUT_TYPE.BOOLEAN,
-        "record": INPUT_TYPE.DATA_COLLECTON,
-    }
-
-    if field_type is None:
-        field_type = _field_to_field_type(field)
-
-    if field_type in simple_map_type_map.keys():
-        input_type = simple_map_type_map[field_type]
-        return {"input_type": input_type, "array": False}
-    elif field_type == "array":
-        if isinstance(field["type"], dict):
-            array_type = field["type"]["items"]
-        else:
-            array_type = field["items"]
-        if array_type in simple_map_type_map.keys():
-            input_type = simple_map_type_map[array_type]
-        return {"input_type": input_type, "array": True}
+        return ConditionalInstance(name, case_input, case_options)
     else:
-        raise Exception("Unhandled simple field type encountered - [%s]." % field_type)
+        only_type_description = type_descriptions[0]
+        return InputInstance(
+            name, label, description, input_type=only_type_description.galaxy_param_type, collection_type=only_type_description.collection_type
+        )
 
-
-def _field_to_field_type(field):
-    field_type = field["type"]
-    if isinstance(field_type, dict):
-        field_type = field_type["type"]
-    if isinstance(field_type, list):
-        field_type_length = len(field_type)
-        if field_type_length == 0:
-            raise Exception("Zero-length type list encountered, invalid CWL?")
-        elif len(field_type) == 1:
-            field_type = field_type[0]
-
-    if field_type == "Any":
-        field_type = ["Any"]
-
-    return field_type
+    # Older array to repeat handling, now we are just representing arrays as
+    # dataset collections - we should offer a blended approach in the future.
+    # if field_type in simple_map_type_map.keys():
+    #     input_type = simple_map_type_map[field_type]
+    #     return {"input_type": input_type, "array": False}
+    # elif field_type == "array":
+    #     if isinstance(field["type"], dict):
+    #         array_type = field["type"]["items"]
+    #     else:
+    #         array_type = field["items"]
+    #     if array_type in simple_map_type_map.keys():
+    #         input_type = simple_map_type_map[array_type]
+    #     return {"input_type": input_type, "array": True}
+    # else:
+    #     raise Exception("Unhandled simple field type encountered - [%s]." % field_type)
 
 
 def _field_metadata(field):
@@ -801,18 +759,6 @@ def _simple_field_to_output(field):
         output_type=OUTPUT_TYPE.GLOB
     )
     return output_instance
-
-
-INPUT_TYPE = Bunch(
-    DATA="data",
-    INTEGER="integer",
-    FLOAT="float",
-    TEXT="text",
-    BOOLEAN="boolean",
-    SELECT="select",
-    CONDITIONAL="conditional",
-    DATA_COLLECTON="data_collection",
-)
 
 
 class ConditionalInstance(object):
@@ -860,8 +806,9 @@ class SelectInputInstance(object):
 
 class InputInstance(object):
 
-    def __init__(self, name, label, description, input_type, array=False, area=False):
+    def __init__(self, name, label, description, input_type, array=False, area=False, collection_type=None):
         self.input_type = input_type
+        self.collection_type = collection_type
         self.name = name
         self.label = label
         self.description = description

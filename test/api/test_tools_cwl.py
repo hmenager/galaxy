@@ -306,7 +306,7 @@ class CwlToolsTestCase( api.ApiTestCase ):
     def test_default_path_override( self ):
         run_object = self.dataset_populator.run_cwl_tool( "default_path", "test/functional/tools/cwl_tools/v1.0/default_path_job.yml" )
         output1_content = self.dataset_populator.get_history_dataset_content( run_object.history_id )
-        assert output1_content == "Hello World!"
+        assert output1_content.strip() == "Hello world!", output1_content
 
     @skip_without_tool( "default_path_custom_1" )
     def test_default_path( self ):
