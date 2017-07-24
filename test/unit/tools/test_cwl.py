@@ -302,10 +302,15 @@ class CwlToolObjectTestCase( TestCase, tools_support.UsesApp, tools_support.Uses
         }
         inputs = self.tool.inputs_from_dict({"inputs": cwl_inputs, "inputs_representation": "cwl"})
         print inputs
-        populate_state(self.trans, self.tool.inputs, {}, inputs, errors)
+        print("pre-populated state is %s" % inputs)
+        populated_state = {}
+        populate_state(self.trans, self.tool.inputs, inputs, populated_state, errors)
+        print("populated state is %s" % inputs)
+        from galaxy.tools.parameters.wrapped import WrappedParameters
+        wrapped_params = WrappedParameters(galaxy_mock.MockTrans(), self.tool, populated_state)
+        input_json = to_cwl_job(self.tool, wrapped_params.params, self.test_directory)
         print inputs
-        input_json = to_cwl_job(self.tool, inputs, self.test_directory)
-        print input_json
+        print "to_cwl_job is %s" % input_json
         assert False
 
     def _new_hda( self ):
