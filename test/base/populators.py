@@ -263,7 +263,7 @@ class BaseDatasetPopulator( object ):
         if json_path is not None:
             assert job is None
             with open( json_path, "r" ) as f:
-                if json_path.endswith(".yml") or json.path.endswith(".yaml"):
+                if json_path.endswith(".yml") or json_path.endswith(".yaml"):
                     job_as_dict = yaml.load( f )
                 else:
                     job_as_dict = json.load( f )
