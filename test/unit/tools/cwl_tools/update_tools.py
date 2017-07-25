@@ -80,10 +80,15 @@ CWL_FILES = {
 
 
 for version in CWL_FILES.keys():
+    directory = version.replace("-", "")
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    url = SCHEMAS_URL + ("%s/conformance_test_%s.yaml" % (version, version))
+    response = urllib2.urlopen(url)
+    open("%s/%s" % (directory, "conformance_tests.yaml"), "w").write(response.read())
+
     for cwl_file in CWL_FILES[version]:
         url = SCHEMAS_URL + ("%s/%s/%s" % (version, version, cwl_file))
         response = urllib2.urlopen(url)
-        directory = version.replace("-", "")
-        if not os.path.exists(directory):
-            os.makedirs(directory)
         open("%s/%s" % (directory, cwl_file), "w").write(response.read())
