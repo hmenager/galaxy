@@ -60,17 +60,27 @@ def galactic_job_json(job, test_data_directory, upload_func, collection_create_f
     datasets = []
     dataset_collections = []
 
-    def upload(file_path):
+    def upload_file(file_path):
         if not os.path.isabs(file_path):
             file_path = os.path.join(test_data_directory, file_path)
         _ensure_file_exists(file_path)
-        upload_response = upload_func(file_path)
+        upload_response = upload_func(FileUploadTarget(file_path))
         dataset = upload_response["outputs"][0]
         datasets.append((dataset, file_path))
         dataset_id = dataset["id"]
         return {"src": "hda", "id": dataset_id}
 
-    def replacement_item(value):
+    def upload_object(the_object):
+        upload_response = upload_func(ObjectUploadTarget(the_object))
+        dataset = upload_response["outputs"][0]
+        datasets.append((dataset, the_object))
+        dataset_id = dataset["id"]
+        return {"src": "hda", "id": dataset_id}
+
+    def replacement_item(value, force_to_file=False):
+        if force_to_file:
+            return upload_object(value)
+
         if isinstance(value, list):
             return replacement_list(value)
         elif not isinstance(value, dict):
@@ -87,13 +97,20 @@ def galactic_job_json(job, test_data_directory, upload_func, collection_create_f
         if file_path is None:
             return value
 
-        return upload(file_path)
+        return upload_file(file_path)
 
     def replacement_list(value):
-        new_list = []
-        for item in value:
-            new_list.append(replacement_item(item))
-        return new_list
+        collection_element_identifiers = []
+        for i, item in enumerate(value):
+            dataset = replacement_item(item, force_to_file=True)
+            collection_element = dataset.copy()
+            collection_element["name"] = str(i)
+            collection_element_identifiers.append(collection_element)
+
+        collection = collection_create_func(collection_element_identifiers, "list")
+        dataset_collections.append(collection)
+        hdca_id = collection["id"]
+        return {"src": "hdca", "id": hdca_id}
 
     def replacement_record(value):
         collection_element_identifiers = []
@@ -101,7 +118,7 @@ def galactic_job_json(job, test_data_directory, upload_func, collection_create_f
             if record_value.get("class") != "File":
                 raise NotImplementedError()
 
-            dataset = upload(record_value["location"])
+            dataset = upload_file(record_value["location"])
             collection_element = dataset.copy()
             collection_element["name"] = record_key
             collection_element_identifiers.append(collection_element)
@@ -283,13 +300,23 @@ class BaseDatasetPopulator( object ):
         if history_id is None:
             history_id = self.new_history()
 
-        def upload_path(path):
-            with open( path, "rb" ) as f:
-                content = f.read()
-            return self.new_dataset_request(
-                history_id=history_id,
-                content=content
-            )
+        def upload_func(upload_target):
+            if isinstance(upload_target, FileUploadTarget):
+                path = upload_target.path
+                with open( path, "rb" ) as f:
+                    content = f.read()
+                return self.new_dataset_request(
+                    history_id=history_id,
+                    content=content,
+                    file_type="auto",
+                )
+            else:
+                content = json.dumps(upload_target.object)
+                return self.new_dataset_request(
+                    history_id=history_id,
+                    content=content,
+                    file_type="expression.json",
+                )
 
         def create_collection_func(element_identifiers, collection_type):
             payload = {
@@ -307,7 +334,7 @@ class BaseDatasetPopulator( object ):
         job_as_dict, datasets_uploaded = galactic_job_json(
             job_as_dict,
             test_data_directory,
-            upload_path,
+            upload_func,
             create_collection_func,
         )
         if datasets_uploaded:
@@ -421,6 +448,18 @@ class DatasetPopulator( BaseDatasetPopulator ):
 
     def wait_for_dataset(self, history_id, dataset_id, assert_ok=False, timeout=DEFAULT_TIMEOUT):
         return wait_on_state(lambda: self._get("histories/%s/contents/%s" % (history_id, dataset_id)), assert_ok=assert_ok, timeout=timeout)
+
+
+class FileUploadTarget(object):
+
+    def __init__(self, path):
+        self.path = path
+
+
+class ObjectUploadTarget(object):
+
+    def __init__(self, the_object):
+        self.object = the_object
 
 
 class BaseWorkflowPopulator( object ):

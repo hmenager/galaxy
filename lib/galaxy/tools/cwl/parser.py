@@ -565,7 +565,7 @@ class WorkflowProxy(object):
 
         if input_type == "File":
             input_as_dict["type"] = "data_input"
-        elif isinstance(input_type, dict) and input_type.get("type") == "array" and input_type.get("items") == "File":
+        elif isinstance(input_type, dict) and input_type.get("type") == "array":
             input_as_dict["type"] = "data_collection_input"
             input_as_dict["collection_type"] = "list"
         else:

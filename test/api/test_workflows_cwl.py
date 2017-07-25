@@ -99,17 +99,8 @@ class CwlWorkflowsTestCase(BaseWorkflowsApiTestCase):
         self.dataset_populator.get_history_collection_details(self.history_id, hid=5)
 
     def test_scatter_wf1_v1(self):
-        workflow_id = self._load_workflow("v1.0/scatter-wf1.cwl")
-
-        hda1 = self.dataset_populator.new_dataset(self.history_id, content="hello world\nhello all\nhello all in world\nhello")
-        hda2 = self.dataset_populator.new_dataset(self.history_id, content="moo\ncow\nthat\nis\nall")
-        inputs_map = {
-            "file1": {"src": "hda", "id": hda1["id"]},
-            "file2": {"src": "hda", "id": hda2["id"]}
-        }
-        invocation_id = self._invoke(inputs_map, workflow_id)
-        self.wait_for_invocation_and_jobs(self.history_id, workflow_id, invocation_id)
-        hdca = self.dataset_populator.get_history_collection_details(self.history_id, hid=5)
+        self._run_workflow_job("v1.0/scatter-wf1.cwl", "v1.0/scatter-job1.json")
+        self.dataset_populator.get_history_collection_details(self.history_id, hid=5)
 
     def _run_count_lines_wf(self, wf_path):
         workflow_id = self._load_workflow(wf_path)
