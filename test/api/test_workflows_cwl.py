@@ -3,6 +3,8 @@ import json
 import os
 import re
 
+import yaml
+
 from galaxy.util import galaxy_root_path
 
 from .test_workflows import BaseWorkflowsApiTestCase
@@ -12,6 +14,8 @@ cwl_tool_directory = os.path.join(galaxy_root_path, "test", "functional", "tools
 
 class CwlWorkflowsTestCase(BaseWorkflowsApiTestCase):
     """Test case encompassing CWL workflow tests."""
+
+    v1_conformance_tests = yaml.load(open(os.path.join(cwl_tool_directory, "v1.0", "conformance_tests.yaml"), "r"))
 
     require_admin_user = True
 
@@ -82,6 +86,9 @@ class CwlWorkflowsTestCase(BaseWorkflowsApiTestCase):
         assert element0["file_ext"] == "expression.json"
         # TODO: ensure this looks like an int[] - it doesn't currently...
 
+    def test_count_lines3_ct(self):
+        self._run_conformance_test("Test single step workflow with Scatter step")
+
     def test_count_lines4_v1(self):
         workflow_id = self._load_workflow("v1.0/count-lines4-wf.cwl")
         hda1 = self.dataset_populator.new_dataset(self.history_id, content="hello world\nhello all\nhello all in world\nhello")
@@ -101,6 +108,26 @@ class CwlWorkflowsTestCase(BaseWorkflowsApiTestCase):
     def test_scatter_wf1_v1(self):
         self._run_workflow_job("v1.0/scatter-wf1.cwl", "v1.0/scatter-job1.json")
         self.dataset_populator.get_history_collection_details(self.history_id, hid=5)
+
+    def test_conformance_test_1(self):
+        self._run_conformance_test("Test workflow scatter with single scatter parameter")
+
+    def _run_conformance_test(self, doc):
+        test = self.get_v1_conformance_test(doc)
+        tool = os.path.join(cwl_tool_directory, test["tool"])
+        job = os.path.join(cwl_tool_directory, test["job"])
+        run = self._run_workflow_job(tool, job)
+        expected_outputs = test["output"]
+        for key, value in expected_outputs.items():
+            actual_output = run.get_output_as_object(key)
+            print("ao %s" % actual_output)
+            print("eo %s" % expected_outputs)
+            assert value == actual_output
+
+    def get_v1_conformance_test(self, doc):
+        for test in self.v1_conformance_tests:
+            if test.get("doc") == doc:
+                return test
 
     def _run_count_lines_wf(self, wf_path):
         workflow_id = self._load_workflow(wf_path)

@@ -10,6 +10,8 @@ import yaml
 from pkg_resources import resource_string
 from six import iteritems, StringIO
 
+from galaxy.tools.cwl.util import output_properties
+
 from base import api_asserts
 from base.workflows_format_2 import (
     convert_and_import_workflow,
@@ -188,9 +190,32 @@ class CwlToolRun( object ):
 
 class CwlWorkflowRun( object ):
 
-    def __init__(self, workflow_id, invocation_id):
+    def __init__(self, dataset_populator, history_id, workflow_id, invocation_id):
+        self.dataset_populator = dataset_populator
+        self.history_id = history_id
         self.workflow_id = workflow_id
         self.invocation_id = invocation_id
+
+    def get_output_as_object(self, output_name):
+        invocation_response = self.dataset_populator._get("workflows/%s/invocations/%s" % (self.invocation_id, self.workflow_id))
+        api_asserts.assert_status_code_is( invocation_response, 200 )
+        invocation = invocation_response.json()
+        if output_name in invocation["outputs"]:
+            dataset = invocation["outputs"][output_name]
+            dataset_details = self.dataset_populator.get_history_dataset_details(self.history_id, dataset_id=dataset["id"])
+            ext = dataset_details["file_ext"]
+            if ext == "expression.json":
+                content = self.dataset_populator.get_history_dataset_content(self.history_id, dataset_id=dataset["id"])
+                print("Content is %s" % content)
+                return json.loads(content)
+            else:
+                content = self.dataset_populator.get_history_dataset_content(self.history_id, dataset_id=dataset["id"])
+                return output_properties(content=content)
+        elif output_name in invocation["output_collections"]:
+            collection = invocation["output_collections"][output_name]
+            collection_details = self.dataset_populator.get_history_collection_details(self.history_id, content_id=collection["id"])
+        else:
+            raise Exception("Unknown output [%s] encountered for invocation [%s]" % (output_name, invocation))
 
 
 class BaseDatasetPopulator( object ):
@@ -372,7 +397,7 @@ class BaseDatasetPopulator( object ):
             invocation_response = self._post(url, data=workflow_request)
             api_asserts.assert_status_code_is(invocation_response, 200)
             invocation_id = invocation_response.json()["id"]
-            return CwlWorkflowRun(workflow_id, invocation_id)
+            return CwlWorkflowRun(self, history_id, workflow_id, invocation_id)
 
     run_cwl_tool = run_cwl_artifact
 

@@ -144,6 +144,8 @@ def test_workflow_scatter():
     wc_step = galaxy_workflow_dict["steps"][1]
     assert wc_step["input_connections"]
 
+    assert len(wc_step["workflow_outputs"]) == 1
+
 
 def test_workflow_scatter_multiple_input():
     version = "v1.0"
@@ -288,7 +290,6 @@ class CwlToolObjectTestCase( TestCase, tools_support.UsesApp, tools_support.Uses
 
     def tearDown( self ):
         shutil.rmtree( self.test_directory )
-
 
     def test_default_data_inputs(self):
         self._init_tool(tool_path=_cwl_tool_path("v1.0/default_path.cwl"))

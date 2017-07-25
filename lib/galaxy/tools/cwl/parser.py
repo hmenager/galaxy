@@ -637,15 +637,28 @@ class StepProxy(object):
         for input_name in input_connections.keys():
             tool_state[input_name] = None
 
+        label = self._workflow_proxy.jsonld_id_to_label(self._step.id)
+
+        outputs = []
+        for output in self._workflow_proxy._workflow.tool['outputs']:
+            step, output_name = split_step_references(output["outputSource"], multiple=False)
+            if step == label:
+                cwl_workflow_id, output_label = output["id"].split("#", 1)
+                outputs.append({
+                    "output_name": output_name,
+                    "label": output_label,
+                })
+
         return {
             "id": self._index,
             "tool_hash": tool_hash,
-            "label": self._workflow_proxy.jsonld_id_to_label(self._step.id),
+            "label": label,
             "position": {"left": 0, "top": 0},
             "tool_state": tool_state,
             "type": "tool",  # TODO: dispatch on type obviously...
             "annotation": self._workflow_proxy.cwl_object_to_annotation(self._step.tool),
             "input_connections": input_connections,
+            "workflow_outputs": outputs,
         }
 
 
