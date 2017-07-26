@@ -11,6 +11,7 @@ import galaxy.model
 from galaxy.tools.cwl import tool_proxy
 from galaxy.tools.cwl.parser import ToolProxy
 from galaxy.tools.cwl import workflow_proxy
+from galaxy.tools.cwl.parser import cwl_tool_object_to_proxy
 
 from galaxy.tools.parser.factory import get_tool_source
 
@@ -49,6 +50,17 @@ def test_tool_source_records():
 def test_serialize_deserialize():
     tool = tool_proxy(_cwl_tool_path("draft3/cat1-tool.cwl"))
     ToolProxy.from_persistent_representation(tool.to_persistent_representation())
+
+
+def test_serialize_deserialize_workflow_embed():
+    versions = ["v1.0"]
+    for version in versions:
+        proxy = workflow_proxy(_cwl_tool_path("%s/count-lines2-wf.cwl" % version))
+        step_proxies = proxy.step_proxies()
+        import json
+        open(os.path.expanduser("~/moo"), "w").write(json.dumps(step_proxies[1].tool_proxy.to_persistent_representation()))
+        #assert tool_proxy.requirements, tool_proxy.requirements
+        #assert False
 
 
 def test_reference_proxies():
@@ -117,10 +129,12 @@ def test_workflow_embedded_tools_proxy():
         proxy = workflow_proxy(_cwl_tool_path("%s/count-lines2-wf.cwl" % version))
         step_proxies = proxy.step_proxies()
         assert len(step_proxies) == 2
-
+        print step_proxies[1].requirements
+        print step_proxies[1]._step.embedded_tool.requirements
         galaxy_workflow_dict = proxy.to_dict()
 
         assert len(proxy.runnables) == 2
+        print(proxy.runnables[1])
 
         assert len(galaxy_workflow_dict["steps"]) == 3
         wc_step = galaxy_workflow_dict["steps"][1]
@@ -219,7 +233,7 @@ def test_wc2_tool():
     assert output.format == "expression.json", output.format
 
 
-def test_optionial_output2():
+def test_optional_output2():
     optional_output2_tool1 = _cwl_tool_path("draft3_custom/optional-output2.cwl")
     tool_source = get_tool_source(optional_output2_tool1)
     datasets, collections = _outputs(tool_source)

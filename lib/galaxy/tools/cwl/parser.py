@@ -144,19 +144,28 @@ def _schema_loader(strict_cwl_validation):
 
 
 def _hack_cwl_requirements(cwl_tool):
-    raw_tool = cwl_tool.tool
-    if "requirements" in raw_tool:
-        requirements = raw_tool["requirements"]
-        move_to_hint = None
-        for i, r in enumerate(requirements):
-            if r["class"] == DOCKER_REQUIREMENT:
-                move_to_hint = i
-        if move_to_hint is not None:
-            hint = requirements.pop(move_to_hint)
-            if "hints" not in raw_tool:
-                raw_tool["hints"] = []
-            raw_tool["hints"].append(hint)
-    cwl_tool.requirements = raw_tool.get("requirements", [])
+    move_to_hints = []
+    for i, requirement in enumerate(cwl_tool.requirements):
+        if requirement["class"] == DOCKER_REQUIREMENT:
+            move_to_hints.insert(0, i)
+
+    for i in move_to_hints:
+        del cwl_tool.requirements[i]
+        cwl_tool.hints.append(requirement)
+
+    # raw_tool = cwl_tool.tool
+    # if "requirements" in raw_tool:
+    #     requirements = raw_tool["requirements"]
+    #     move_to_hint = None
+    #     for i, r in enumerate(requirements):
+    #         if r["class"] == DOCKER_REQUIREMENT:
+    #             move_to_hint = i
+    #     if move_to_hint is not None:
+    #         hint = requirements.pop(move_to_hint)
+    #         if "hints" not in raw_tool:
+    #             raw_tool["hints"] = []
+    #         raw_tool["hints"].append(hint)
+    # cwl_tool.requirements = raw_tool.get("requirements", [])
 
 
 def check_requirements(rec, tool=True):
@@ -621,8 +630,28 @@ class StepProxy(object):
     def cwl_id(self):
         return self._step.id
 
+    @property
+    def cwl_tool_object(self):
+        return self._step.embedded_tool
+
+    @property
+    def tool_proxy(self):
+        return cwl_tool_object_to_proxy(self.cwl_tool_object)
+
+    @property
+    def requirements(self):
+        return self._step.requirements
+
+    @property
+    def hints(self):
+        return self._step.hints
+
     def tool_references(self):
         # Return a list so we can handle subworkflows recursively in the future.
+
+        # TODO: merge in requirements...
+        #   process         requirements: inherited requirements
+        #.                  hints: inherited hints
         return [self._step.embedded_tool]
 
     def to_dict(self, input_connections):
