@@ -80,16 +80,21 @@ def galactic_job_json(job, test_data_directory, upload_func, collection_create_f
         return {"src": "hda", "id": dataset_id}
 
     def replacement_item(value, force_to_file=False):
+        is_dict = isinstance(value, dict)
+        is_file = is_dict and value.get("class", None) == "File"
+
         if force_to_file:
-            return upload_object(value)
+            if is_file:
+                return replacement_file(value)
+            else:
+                return upload_object(value)
 
         if isinstance(value, list):
             return replacement_list(value)
         elif not isinstance(value, dict):
             return value
 
-        type_class = value.get("class", None)
-        if type_class == "File":
+        if is_file:
             return replacement_file(value)
         else:
             return replacement_record(value)

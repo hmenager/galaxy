@@ -33,9 +33,13 @@ class BaseCwlWorklfowTestCase(BaseWorkflowsApiTestCase):
         job = os.path.join(cwl_tool_directory, test["job"])
         run = self._run_workflow_job(tool, job)
         expected_outputs = test["output"]
-        for key, value in expected_outputs.items():
-            actual_output = run.get_output_as_object(key)
-            self.assertEquals(value, actual_output)
+        try:
+            for key, value in expected_outputs.items():
+                actual_output = run.get_output_as_object(key)
+                self.assertEquals(value, actual_output)
+        except AssertionError:
+            self.dataset_populator._summarize_history_errors(self.history_id)
+            raise
 
     def _run_workflow_job(self, workflow_path, job_path):
         workflow_path = os.path.join(cwl_tool_directory, workflow_path)
