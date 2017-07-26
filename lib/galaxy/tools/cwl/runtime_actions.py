@@ -60,6 +60,7 @@ def handle_outputs(job_directory=None):
 
                 handle_output_location(record_value, target_path)
         else:
+            target_path = job_proxy.output_path(output_name)
             with open(target_path, "w") as f:
                 f.write(json.dumps(output))
 

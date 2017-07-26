@@ -109,6 +109,9 @@ class CwlWorkflowsTestCase(BaseWorkflowsApiTestCase):
         self._run_workflow_job("v1.0/scatter-wf1.cwl", "v1.0/scatter-job1.json")
         self.dataset_populator.get_history_collection_details(self.history_id, hid=5)
 
+    def test_conformance_test_0(self):
+        self._run_conformance_test("Test two step workflow with inline tools")
+
     def test_conformance_test_1(self):
         self._run_conformance_test("Test workflow scatter with single scatter parameter")
 
@@ -120,8 +123,6 @@ class CwlWorkflowsTestCase(BaseWorkflowsApiTestCase):
         expected_outputs = test["output"]
         for key, value in expected_outputs.items():
             actual_output = run.get_output_as_object(key)
-            print("ao %s" % actual_output)
-            print("eo %s" % expected_outputs)
             assert value == actual_output
 
     def get_v1_conformance_test(self, doc):
@@ -140,8 +141,9 @@ class CwlWorkflowsTestCase(BaseWorkflowsApiTestCase):
 
     def _check_countlines_wf(self, invocation_id, workflow_id, expected_count=4):
         self.wait_for_invocation_and_jobs(self.history_id, workflow_id, invocation_id)
-        output = self.dataset_populator.get_history_dataset_content(self.history_id, hid=2)
-        assert re.search(r"\s+%d" % expected_count, output), output
+        output = self.dataset_populator.get_history_dataset_content(self.history_id, hid=3)
+        self.dataset_populator._summarize_history_errors(self.history_id)
+        assert str(expected_count) == output, output
 
     def _invoke(self, inputs, workflow_id):
         workflow_request = dict(

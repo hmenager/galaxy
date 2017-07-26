@@ -4168,7 +4168,7 @@ class WorkflowInvocation( object, Dictifiable ):
                 if not label:
                     continue
 
-                outputs[label] = {
+                output_collections[label] = {
                     'src': 'hdca',
                     'id': output_assoc.dataset_collection_id,
                 }

@@ -200,20 +200,37 @@ class CwlWorkflowRun( object ):
         invocation_response = self.dataset_populator._get("workflows/%s/invocations/%s" % (self.invocation_id, self.workflow_id))
         api_asserts.assert_status_code_is( invocation_response, 200 )
         invocation = invocation_response.json()
-        if output_name in invocation["outputs"]:
-            dataset = invocation["outputs"][output_name]
-            dataset_details = self.dataset_populator.get_history_dataset_details(self.history_id, dataset_id=dataset["id"])
+
+        def dataset_to_json(dataset_details):
             ext = dataset_details["file_ext"]
+            assert dataset_details["state"] == "ok"
+            print(dataset_details)
             if ext == "expression.json":
-                content = self.dataset_populator.get_history_dataset_content(self.history_id, dataset_id=dataset["id"])
-                print("Content is %s" % content)
+                print("hid is %s" % dataset_details["hid"])
+                content = self.dataset_populator.get_history_dataset_content(self.history_id, dataset_id=dataset_details["id"])
+                print("content is %s" % content)
                 return json.loads(content)
             else:
-                content = self.dataset_populator.get_history_dataset_content(self.history_id, dataset_id=dataset["id"])
+                content = self.dataset_populator.get_history_dataset_content(self.history_id, dataset_id=dataset_details["id"])
                 return output_properties(content=content)
+
+        if output_name in invocation["outputs"]:
+            dataset = invocation["outputs"][output_name]
+            dataset_id = dataset["id"]
+            dataset_details = self.dataset_populator.get_history_dataset_details(self.history_id, dataset_id=dataset_id)
+            assert dataset_details["id"] == dataset_id
+            return dataset_to_json(dataset_details)
         elif output_name in invocation["output_collections"]:
             collection = invocation["output_collections"][output_name]
             collection_details = self.dataset_populator.get_history_collection_details(self.history_id, content_id=collection["id"])
+            print(collection_details)
+            if collection_details["collection_type"] == "list":
+                rval = []
+                for element in collection_details["elements"]:
+                    rval.append(dataset_to_json(element["object"]))
+            else:
+                raise NotImplementedError()
+            return rval
         else:
             raise Exception("Unknown output [%s] encountered for invocation [%s]" % (output_name, invocation))
 

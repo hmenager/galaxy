@@ -325,9 +325,10 @@ class CwlToolsTestCase( api.ApiTestCase ):
     @skip_without_tool( "parseInt-tool" )
     def test_parse_int_tool( self ):
         run_object = self.dataset_populator.run_cwl_tool( "parseInt-tool", "test/functional/tools/cwl_tools/draft3/parseInt-job.json")
+        output1 = self.dataset_populator.get_history_dataset_details( run_object.history_id, hid=2 )
+        assert output1["state"] == "ok"
         output1_content = self.dataset_populator.get_history_dataset_content( run_object.history_id, hid=2 )
         self.assertEquals(output1_content, '42')
-        output1 = self.dataset_populator.get_history_dataset_details( run_object.history_id, hid=2 )
         self.assertEquals(output1["extension"], "expression.json")
 
     @skip_without_tool( "record-output" )

@@ -1084,9 +1084,9 @@ test_data:
         self._assert_status_code_is( invocation_response, 200 )
         invocation = invocation_response.json()
         self._assert_has_keys(invocation , "id", "outputs", "output_collections" )
-        assert len(invocation["output_collections"]) == 0
-        assert len(invocation["outputs"]) == 1
-        output_content = self.dataset_populator.get_history_collection_details(history_id, content_id=invocation["outputs"]["wf_output_1"]["id"])
+        assert len(invocation["output_collections"]) == 1
+        assert len(invocation["outputs"]) == 0
+        output_content = self.dataset_populator.get_history_collection_details(history_id, content_id=invocation["output_collections"]["wf_output_1"]["id"])
         self._assert_has_keys(output_content , "id", "elements" )
         elements = output_content["elements"]
         assert len(elements) == 1

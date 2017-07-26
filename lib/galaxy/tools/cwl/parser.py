@@ -305,7 +305,7 @@ class JobProxy(object):
         self._output_dict = output_dict
         self._job_directory = job_directory
 
-        self._final_output = []
+        self._final_output = None
         self._ok = True
         self._cwl_job = None
         self._is_command_line_job = None
@@ -392,6 +392,7 @@ class JobProxy(object):
             return {}
 
     def _output_callback(self, out, process_status):
+        self._process_status = process_status
         if process_status == "success":
             self._final_output = out
         else:
@@ -403,6 +404,8 @@ class JobProxy(object):
         if not self.is_command_line_job:
             self.cwl_job().run(
             )
+            if not self._ok:
+                raise Exception("Final process state not ok, [%s]" % self._process_status)
             return self._final_output
         else:
             return self.cwl_job().collect_outputs(tool_working_directory)
