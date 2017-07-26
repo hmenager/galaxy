@@ -11,7 +11,6 @@ import galaxy.model
 from galaxy.tools.cwl import tool_proxy
 from galaxy.tools.cwl.parser import ToolProxy
 from galaxy.tools.cwl import workflow_proxy
-from galaxy.tools.cwl.parser import cwl_tool_object_to_proxy
 
 from galaxy.tools.parser.factory import get_tool_source
 
@@ -53,14 +52,14 @@ def test_serialize_deserialize():
 
 
 def test_serialize_deserialize_workflow_embed():
+    # Test inherited hints and requirements from workflow -> tool
+    # work here.
     versions = ["v1.0"]
     for version in versions:
         proxy = workflow_proxy(_cwl_tool_path("%s/count-lines2-wf.cwl" % version))
         step_proxies = proxy.step_proxies()
-        import json
-        open(os.path.expanduser("~/moo"), "w").write(json.dumps(step_proxies[1].tool_proxy.to_persistent_representation()))
-        #assert tool_proxy.requirements, tool_proxy.requirements
-        #assert False
+        tool_proxy = step_proxies[0].tool_proxy
+        assert tool_proxy.requirements, tool_proxy.requirements
 
 
 def test_reference_proxies():
@@ -68,6 +67,19 @@ def test_reference_proxies():
     for version in versions:
         proxy = workflow_proxy(_cwl_tool_path("%s/count-lines1-wf.cwl" % version))
         proxy.tool_reference_proxies()
+
+
+def test_subworkflow_parsing():
+    version = "v1.0"
+    proxy = workflow_proxy(_cwl_tool_path("%s/count-lines10-wf.cwl" % version))
+    assert len(proxy.tool_reference_proxies()) == 2
+
+    galaxy_workflow_dict = proxy.to_dict()
+    steps = galaxy_workflow_dict["steps"]
+    assert len(steps) == 2  # One input, one subworkflow
+
+    subworkflow_step = steps[1]
+    assert subworkflow_step["type"] == "subworkflow"
 
 
 def test_checks_requirements():

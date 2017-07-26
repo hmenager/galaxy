@@ -380,10 +380,14 @@ class WorkflowProgress( object ):
         self.outputs[ step.id ] = outputs
         for workflow_output in step.workflow_outputs:
             if workflow_output.workflow_step == step:
+                output_name = workflow_output.output_name
+                if output_name not in outputs:
+                    raise KeyError("Failed to find [%s] in step outputs [%s]" % (output_name, outputs))
+                output = outputs[output_name]
                 self._record_workflow_output(
                     step,
                     workflow_output,
-                    output=outputs[workflow_output.output_name],
+                    output=output,
                 )
 
     def _record_workflow_output(self, step, workflow_output, output):

@@ -42,6 +42,7 @@ SUPPORTED_TOOL_REQUIREMENTS = [
     "InlineJavascriptRequirement",
     "ShellCommandRequirement",
     "ScatterFeatureRequirement",
+    "SubworkflowFeatureRequirement",
     "MultipleInputFeatureRequirement",
 ]
 
@@ -201,7 +202,6 @@ class ToolProxy( object ):
 
     @property
     def id(self):
-        print dir(self._tool.metadata)
         raw_id = self._tool.tool.get("id", None)
         return raw_id
 
@@ -461,7 +461,7 @@ class JobProxy(object):
 
 class WorkflowProxy(object):
 
-    def __init__(self, workflow, workflow_path):
+    def __init__(self, workflow, workflow_path=None):
         self._workflow = workflow
         self._workflow_path = workflow_path
 
@@ -483,7 +483,7 @@ class WorkflowProxy(object):
         proxies = []
         num_input_steps = len(self._workflow.tool['inputs'])
         for i, step in enumerate(self._workflow.steps):
-            proxies.append(StepProxy(self, step, i + num_input_steps))
+            proxies.append(build_step_proxy(self, step, i + num_input_steps))
         return proxies
 
     @property
@@ -509,7 +509,6 @@ class WorkflowProxy(object):
 
     def input_connections_by_step(self, step_proxies):
         cwl_ids_to_index = self.cwl_ids_to_index(step_proxies)
-
         input_connections_by_step = []
         for step_proxy in step_proxies:
             input_connections_step = {}
@@ -517,13 +516,18 @@ class WorkflowProxy(object):
             for cwl_input in cwl_inputs:
                 cwl_input_id = cwl_input["id"]
                 cwl_source_id = cwl_input["source"]
-                step_name, input_name = split_step_references(cwl_input_id, multiple=False)
+                step_name, input_name = split_step_references(cwl_input_id, multiple=False, workflow_id=self.cwl_id)
                 # Consider only allow multiple if MultipleInputFeatureRequirement is enabled
-                for (output_step_name, output_name) in split_step_references(cwl_source_id):
-                    output_step_id = self.cwl_id + "#" + output_step_name
+                for (output_step_name, output_name) in split_step_references(cwl_source_id, workflow_id=self.cwl_id):
+                    if "#" in self.cwl_id:
+                        sep_on = "/"
+                    else:
+                        sep_on = "#"
+                    output_step_id = self.cwl_id + sep_on + output_step_name
+
                     if output_step_id not in cwl_ids_to_index:
                         template = "Output [%s] does not appear in ID-to-index map [%s]."
-                        msg = template % (output_step_id, cwl_ids_to_index)
+                        msg = template % (output_step_id, cwl_ids_to_index.keys())
                         raise AssertionError(msg)
 
                     if input_name not in input_connections_step:
@@ -540,7 +544,7 @@ class WorkflowProxy(object):
         return input_connections_by_step
 
     def to_dict(self):
-        name = os.path.basename(self._workflow_path)
+        name = os.path.basename(self._workflow_path or 'TODO - derive a name from ID')
         steps = {}
 
         step_proxies = self.step_proxies()
@@ -553,7 +557,6 @@ class WorkflowProxy(object):
         for i, step_proxy in enumerate(step_proxies):
             input_connections = input_connections_by_step[i]
             steps[index] = step_proxy.to_dict(input_connections)
-            print steps[index]
             index += 1
 
         return {
@@ -562,8 +565,18 @@ class WorkflowProxy(object):
             'annotation': self.cwl_object_to_annotation(self._workflow.tool),
         }
 
+    def find_inputs_step_index(self, label):
+        for i, input in enumerate(self._workflow.tool['inputs']):
+            if self.jsonld_id_to_label(input["id"]) == label:
+                return i
+
+        raise Exception("Failed to find index for label %s" % label)
+
     def jsonld_id_to_label(self, id):
-        return id.rsplit("#", 1)[-1]
+        if "#" in self.cwl_id:
+            return id.rsplit("/", 1)[-1]
+        else:
+            return id.rsplit("#", 1)[-1]
 
     def cwl_input_to_galaxy_step(self, input, i):
         input_type = input["type"]
@@ -589,15 +602,25 @@ class WorkflowProxy(object):
         return cwl_obj.get("doc", None)
 
 
-def split_step_references(step_references, multiple=True):
+def split_step_references(step_references, workflow_id=None, multiple=True):
     """Split a CWL step input or output reference into step id and name."""
     # Trim off the workflow id part of the reference.
     step_references = listify(step_references)
     split_references = []
 
     for step_reference in step_references:
-        assert "#" in step_reference
-        cwl_workflow_id, step_reference = step_reference.split("#", 1)
+        if workflow_id is None:
+            # This path works fine for some simple workflows - but not so much
+            # for subworkflows (maybe same for $graph workflows?)
+            assert "#" in step_reference
+            _, step_reference = step_reference.split("#", 1)
+        else:
+            if "#" in workflow_id:
+                sep_on = "/"
+            else:
+                sep_on = "#"
+            assert step_reference.startswith(workflow_id + sep_on)
+            step_reference = step_reference[len(workflow_id + sep_on):]
 
         # Now just grab the step name and input/output name.
         assert "#" not in step_reference
@@ -619,7 +642,15 @@ def split_step_references(step_references, multiple=True):
         return split_references[0]
 
 
-class StepProxy(object):
+def build_step_proxy(workflow_proxy, step, index):
+    step_type = step.embedded_tool.tool["class"]
+    if step_type == "Workflow":
+        return SubworkflowStepProxy(workflow_proxy, step, index)
+    else:
+        return ToolStepProxy(workflow_proxy, step, index)
+
+
+class BaseStepProxy(object):
 
     def __init__(self, workflow_proxy, step, index):
         self._workflow_proxy = workflow_proxy
@@ -627,16 +658,12 @@ class StepProxy(object):
         self._index = index
 
     @property
+    def step_class(self):
+        return self.cwl_tool_object.tool["class"]
+
+    @property
     def cwl_id(self):
         return self._step.id
-
-    @property
-    def cwl_tool_object(self):
-        return self._step.embedded_tool
-
-    @property
-    def tool_proxy(self):
-        return cwl_tool_object_to_proxy(self.cwl_tool_object)
 
     @property
     def requirements(self):
@@ -646,12 +673,45 @@ class StepProxy(object):
     def hints(self):
         return self._step.hints
 
+    @property
+    def label(self):
+        label = self._workflow_proxy.jsonld_id_to_label(self._step.id)
+        return label
+
+    def galaxy_workflow_outputs_list(self):
+        outputs = []
+        for output in self._workflow_proxy._workflow.tool['outputs']:
+            step, output_name = split_step_references(
+                output["outputSource"],
+                multiple=False,
+                workflow_id=self._workflow_proxy.cwl_id,
+            )
+            if step == self.label:
+                output_id = output["id"]
+                if "#" not in self._workflow_proxy.cwl_id:
+                    _, output_label = output_id.rsplit("#", 1)
+                else:
+                    _, output_label = output_id.rsplit("/", 1)
+
+                outputs.append({
+                    "output_name": output_name,
+                    "label": output_label,
+                })
+        return outputs
+
+    @property
+    def cwl_tool_object(self):
+        return self._step.embedded_tool
+
+
+class ToolStepProxy(BaseStepProxy):
+
+    @property
+    def tool_proxy(self):
+        return cwl_tool_object_to_proxy(self.cwl_tool_object)
+
     def tool_references(self):
         # Return a list so we can handle subworkflows recursively in the future.
-
-        # TODO: merge in requirements...
-        #   process         requirements: inherited requirements
-        #.                  hints: inherited hints
         return [self._step.embedded_tool]
 
     def to_dict(self, input_connections):
@@ -669,29 +729,48 @@ class StepProxy(object):
         for input_name in input_connections.keys():
             tool_state[input_name] = None
 
-        label = self._workflow_proxy.jsonld_id_to_label(self._step.id)
-
-        outputs = []
-        for output in self._workflow_proxy._workflow.tool['outputs']:
-            step, output_name = split_step_references(output["outputSource"], multiple=False)
-            if step == label:
-                cwl_workflow_id, output_label = output["id"].split("#", 1)
-                outputs.append({
-                    "output_name": output_name,
-                    "label": output_label,
-                })
-
+        outputs = self.galaxy_workflow_outputs_list()
         return {
             "id": self._index,
             "tool_hash": tool_hash,
-            "label": label,
+            "label": self.label,
             "position": {"left": 0, "top": 0},
             "tool_state": tool_state,
-            "type": "tool",  # TODO: dispatch on type obviously...
+            "type": "tool",
             "annotation": self._workflow_proxy.cwl_object_to_annotation(self._step.tool),
             "input_connections": input_connections,
             "workflow_outputs": outputs,
         }
+
+
+class SubworkflowStepProxy(BaseStepProxy):
+
+    def to_dict(self, input_connections):
+        outputs = self.galaxy_workflow_outputs_list()
+        for key, input_connection_list in input_connections.items():
+            input_subworkflow_step_id = self.workflow_proxy.find_inputs_step_index(
+                key
+            )
+            for input_connection in input_connection_list:
+                input_connection["input_subworkflow_step_id"] = input_subworkflow_step_id
+
+        return {
+            "id": self._index,
+            "label": self.label,
+            "position": {"left": 0, "top": 0},
+            "type": "subworkflow",
+            "subworkflow": self.workflow_proxy.to_dict(),
+            "annotation": self._workflow_proxy.cwl_object_to_annotation(self._step.tool),
+            "input_connections": input_connections,
+            "workflow_outputs": outputs,
+        }
+
+    def tool_references(self):
+        return self.workflow_proxy.tool_references()
+
+    @property
+    def workflow_proxy(self):
+        return WorkflowProxy(self.cwl_tool_object)
 
 
 def remove_pickle_problems(obj):
@@ -746,11 +825,8 @@ def _outer_field_to_input_instance(field):
     for type_description in type_descriptions:
         select_options.append({"value": type_description.name, "label": type_description.label})
         input_instances = []
-        if type_description.name == "null":
-            print("better be false! %s" % type_description.uses_param)
         if type_description.uses_param():
             input_instances.append(value_input(type_description))
-            print("ii %s" % [i.to_dict() for i in input_instances])
         case_options.append((type_description.name, input_instances))
 
     # If there is more than one way to represent this parameter - produce a conditional
