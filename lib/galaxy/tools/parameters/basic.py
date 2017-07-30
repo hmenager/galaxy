@@ -1472,6 +1472,9 @@ class BaseDataToolParameter( ToolParameter ):
                         return hdca
 
     def to_json( self, value, app, use_security ):
+        if getattr( value, "ephemeral", False ):
+            value = value.persistent_object
+
         def single_to_json( value ):
             src = None
             if isinstance( value, dict ) and 'src' in value and 'id' in value:

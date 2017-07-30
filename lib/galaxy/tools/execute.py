@@ -138,7 +138,7 @@ class ToolExecutionTracker( object ):
 
         structure = self.collection_info.structure
 
-        if hasattr( self.collection_info, "collections" ):
+        if not self.collection_info.uses_ephemeral_collections:
             # params is just one sample tool param execution with parallelized
             # collection replaced with a specific dataset. Need to replace this
             # with the collection and wrap everything up so can evaluate output
@@ -148,7 +148,7 @@ class ToolExecutionTracker( object ):
             collection_names = ["collection %d" % c.hid for c in self.collection_info.collections.values()]
             on_text = on_text_for_names( collection_names )
         else:
-            on_text = "implicitly create collection for inputs"
+            on_text = "implicitly created collection from inputs"
 
         collections = {}
 

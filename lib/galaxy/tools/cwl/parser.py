@@ -963,7 +963,7 @@ class InputInstance(object):
             if self.input_type == INPUT_TYPE.FLOAT:
                 as_dict["value"] = "0.0"
             elif self.input_type == INPUT_TYPE.DATA_COLLECTON:
-                as_dict["collection_type"] = "record"
+                as_dict["collection_type"] = self.collection_type
 
         return as_dict
 

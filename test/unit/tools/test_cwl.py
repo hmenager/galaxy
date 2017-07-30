@@ -184,6 +184,14 @@ def test_workflow_scatter_multiple_input():
     assert len(galaxy_workflow_dict["steps"]) == 3
 
 
+def test_workflow_multiple_input_merge_flattened():
+    version = "v1.0"
+    proxy = workflow_proxy(_cwl_tool_path("%s/count-lines7-wf.cwl" % version))
+
+    galaxy_workflow_dict = proxy.to_dict()
+    assert len(galaxy_workflow_dict["steps"]) == 3
+
+
 def test_load_proxy_simple():
     cat3 = _cwl_tool_path("draft3/cat3-tool.cwl")
     tool_source = get_tool_source(cat3)

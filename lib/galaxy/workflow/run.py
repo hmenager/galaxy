@@ -301,14 +301,67 @@ class WorkflowProgress( object ):
                     # We've mapped multiple individual inputs to a single parameter,
                     # promote output to a collection.
                     inputs = []
-                    for c in connection:
+                    input_history_content_type = None
+                    input_collection_type = None
+                    for i, c in enumerate(connection):
                         input_from_connection = self.replacement_for_connection( c, is_data=is_data )
+                        input_history_content_type = input_from_connection.history_content_type
+                        if i == 0:
+                            if input_history_content_type == "dataset_collection":
+                                input_collection_type = input_from_connection.collection.collection_type
+                            else:
+                                input_collection_type = None
+                        else:
+                            if input_collection_type is None:
+                                if input_history_content_type != "dataset":
+                                    raise Exception("Cannot map over a combination of datasets and collections.")
+                            else:
+                                if input_history_content_type != "dataset_collection":
+                                    raise Exception("Cannot merge over combinations of datasets and collections.")
+                                elif input_from_connection.collection.collection_type != input_collection_type:
+                                    raise Exception("Cannot merge collections of different collection types.")
+
                         inputs.append(input_from_connection)
 
-                    replacement = modules.ScatterOver(
-                        prefixed_name,
-                        inputs,
+
+                    if input.type == "data_collection":
+                        # TODO: Implement more nested types here...
+                        assert input.collection_types == ["list"], input.collection_types
+
+                    collection = model.DatasetCollection()
+                    # If individual datasets provided (type is None) - premote to a list.
+                    collection.collection_type = input_collection_type or "list"
+                    elements = []
+
+                    next_index = 0
+                    for input in inputs:
+                        if input_collection_type is None:
+                            element = model.DatasetCollectionElement(
+                                element=input,
+                                element_index=next_index,
+                                element_identifier=str(next_index),
+                            )
+                            elements.append(element)
+                            next_index += 1
+                        elif input_collection_type == "list":
+                            for dataset_instance in input.dataset_instances:
+                                element = model.DatasetCollectionElement(
+                                    element=dataset_instance,
+                                    element_index=next_index,
+                                    element_identifier=str(next_index),
+                                )
+                                elements.append(element)
+                                next_index += 1
+                        else:
+                            raise NotImplementedError()
+
+                    collection.elements = elements
+
+                    ephemeral_collection = modules.EphemeralCollection(
+                        collection=collection,
+                        history=self.workflow_invocation.history,
                     )
+                    return ephemeral_collection
 
         return replacement
 

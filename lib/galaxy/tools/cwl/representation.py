@@ -130,6 +130,12 @@ def to_cwl_job(tool, param_dict, local_working_directory):
         elif type_representation.name == "json":
             raw_value = param_dict_value.value
             return json.loads(raw_value)
+        elif type_representation.name == "array":
+            # TODO: generalize to lists of lists and lists of non-files...
+            rval = []
+            for value in param_dict_value:
+                rval.append(dataset_wrapper_to_file_json(value))
+            return rval
         elif type_representation.name == "record":
             rval = dict()  # TODO: THIS NEEDS TO BE ORDERED BUT odict not json serializable!
             for key, value in param_dict_value.items():

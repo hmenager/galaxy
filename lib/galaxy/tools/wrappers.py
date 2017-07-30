@@ -384,7 +384,7 @@ class DatasetCollectionWrapper( ToolParameterValueWrapper, HasDatasets ):
         else:
             self.__input_supplied = True
 
-        if hasattr( has_collection, "name" ):
+        if hasattr( has_collection, "history_content_type" ):
             # It is a HistoryDatasetCollectionAssociation
             collection = has_collection.collection
             self.name = has_collection.name
