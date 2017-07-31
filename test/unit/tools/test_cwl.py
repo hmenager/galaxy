@@ -200,6 +200,20 @@ def test_workflow_multiple_input_merge_flattened():
     assert input["merge_type"] == "merge_flattened"
 
 
+def test_workflow_step_value_from():
+    version = "v1.0"
+    proxy = workflow_proxy(_cwl_tool_path("%s/step-valuefrom-wf.cwl" % version))
+
+    galaxy_workflow_dict = proxy.to_dict()
+    assert len(galaxy_workflow_dict["steps"]) == 3
+
+    tool_step = galaxy_workflow_dict["steps"][2]
+    assert "inputs" in tool_step
+    inputs = tool_step["inputs"]
+    assert len(inputs) == 1
+    assert "value_from" in inputs[0]
+
+
 def test_load_proxy_simple():
     cat3 = _cwl_tool_path("draft3/cat3-tool.cwl")
     tool_source = get_tool_source(cat3)

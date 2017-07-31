@@ -295,6 +295,7 @@ class WorkflowProgress( object ):
                         replacement = replacement[ 0 ]
             else:
                 step_input = step.inputs_by_name.get(prefixed_name, None)
+
                 merge_type = model.WorkflowStepInput.default_merge_type
                 if step_input:
                     merge_type = step_input.merge_type
@@ -327,7 +328,6 @@ class WorkflowProgress( object ):
                                     raise Exception("Cannot merge collections of different collection types.")
 
                         inputs.append(input_from_connection)
-
 
                     if input.type == "data_collection":
                         # TODO: Implement more nested types here...
@@ -384,7 +384,7 @@ class WorkflowProgress( object ):
                         collection=collection,
                         history=self.workflow_invocation.history,
                     )
-                    return ephemeral_collection
+                    replacement = ephemeral_collection
 
         return replacement
 

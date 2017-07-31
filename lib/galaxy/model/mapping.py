@@ -849,6 +849,8 @@ model.WorkflowStepInput.table = Table(
     Column( "name", Unicode( 255 ) ),
     Column( "merge_type", TEXT ),
     Column( "scatter_type", TEXT ),
+    Column( "value_from", JSONType ),
+    Column( "value_from_type", TEXT ),
     Column( "default_value", JSONType ) )
 
 

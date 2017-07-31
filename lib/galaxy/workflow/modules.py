@@ -863,6 +863,64 @@ class ToolModule( WorkflowModule ):
         else:
             raise ToolMissingException( "Tool %s missing. Cannot recover runtime state." % self.tool_id )
 
+    def evaluate_value_from_expressions(self, step, execution_state):
+        value_from_expressions = {}
+
+        for key, value in execution_state.inputs.items():
+            step_input = step.inputs_by_name.get(key, None)
+            if step_input and step_input.value_from is not None:
+                value_from_expressions[key] = step_input.value_from
+
+        if not value_from_expressions:
+            return
+
+        hda_references = []
+
+        def to_cwl(value):
+            if isinstance(value, model.HistoryDatasetAssociation):
+                hda_references.append(value)
+                return {
+                    "class": "File",
+                    "location": "step_input://%d" % len(hda_references),
+                }
+            elif hasattr(value, "collection"):
+                collection = value.collection
+                if collection.collection_type == "list":
+                    return map(to_cwl, collection.dataset_instances)
+                elif collection.collection_type == "record":
+                    rval = {}
+                    for element in collection.elements:
+                        rval[element.element_identifier] = to_cwl(element.element_object)
+                    return rval
+            else:
+                return value
+
+        def from_cwl(value):
+            if isinstance(value, dict) and "class" in value and "location" in value:
+                assert value["location"].startswith("step_input://")
+                return hda_references[int(value["location"][len("step_input://"):])-1]
+            elif isinstance(value, dict):
+                raise NotImplementedError()
+            else:
+                return value
+
+        step_state = {}
+        for key, value in execution_state.inputs.items():
+            step_state[key] = to_cwl(value)
+
+        for key, value_from in value_from_expressions.items():
+            from cwltool.expression import do_eval
+            as_cwl_value = do_eval(
+                value_from,
+                step_state,
+                [],
+                None,
+                None,
+                {},
+                context=step_state[key],
+            )
+            execution_state.inputs[key] = from_cwl(as_cwl_value)
+
     def execute( self, trans, progress, invocation, step ):
         tool = trans.app.toolbox.get_tool( step.tool_id, tool_version=step.tool_version, tool_hash=step.tool_hash )
         tool_state = step.state
@@ -924,6 +982,10 @@ class ToolModule( WorkflowModule ):
                 message_template = "Error due to input mapping of '%s' in '%s'.  A common cause of this is conditional outputs that cannot be determined until runtime, please review your workflow."
                 message = message_template % (tool.name, k.message)
                 raise exceptions.MessageException( message )
+
+            self.evaluate_value_from_expressions(
+                step, execution_state
+            )
 
             unmatched_input_connections = expected_replacement_keys - found_replacement_keys
             if unmatched_input_connections:
@@ -997,14 +1059,14 @@ class ToolModule( WorkflowModule ):
             is_data_param = isinstance( input, DataToolParameter )
             if is_data_param and not input.multiple:
                 data = progress.replacement_for_tool_input( step, input, prefixed_name )
-                if hasattr( data, "collection" ):
+                if hasattr( data, "collection" ) and data.collection.allow_implicit_mapping:
                     collections_to_match.add( prefixed_name, data )
                 return
             is_data_collection_param = isinstance( input, DataCollectionToolParameter )
             if is_data_collection_param and not input.multiple:
                 data = progress.replacement_for_tool_input( step, input, prefixed_name )
                 history_query = input._history_query( self.trans )
-                if hasattr( data, "collection" ):
+                if hasattr( data, "collection" ) and data.collection.allow_implicit_mapping:
                     subcollection_type_description = history_query.can_map_over( data )
                     if subcollection_type_description:
                         collections_to_match.add( prefixed_name, data, subcollection_type=subcollection_type_description.collection_type )
@@ -1012,7 +1074,7 @@ class ToolModule( WorkflowModule ):
 
             data = progress.replacement_for_tool_input( step, input, prefixed_name )
             if data is not NO_REPLACEMENT:
-                if hasattr( data, "collection" ):
+                if hasattr( data, "collection" ) and data.collection.allow_implicit_mapping:
                     collections_to_match.add( prefixed_name, data )
 
         visit_input_values( tool.inputs, step.state.inputs, callback )

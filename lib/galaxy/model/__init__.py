@@ -3232,6 +3232,10 @@ class DatasetCollection( object, Dictifiable, UsesAnnotations ):
             self.populated_state = DatasetCollection.populated_states.NEW
 
     @property
+    def allow_implicit_mapping(self):
+        return self.collection_type != "record"
+
+    @property
     def populated( self ):
         top_level_populated = self.populated_state == DatasetCollection.populated_states.OK
         if top_level_populated and self.has_subcollections:
