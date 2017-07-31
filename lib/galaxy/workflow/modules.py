@@ -905,7 +905,7 @@ class ToolModule( WorkflowModule ):
                         replacement = iteration_elements[ prefixed_name ]
                 else:
                     # TODO: I guess never exapnd in progress - only exapnd up here!
-                    replacement = progress.replacement_for_tool_input( step, input, prefixed_name, expand_expressions=True )
+                    replacement = progress.replacement_for_tool_input( step, input, prefixed_name )
 
                 if replacement is not NO_REPLACEMENT:
                     found_replacement_keys.add(prefixed_name)

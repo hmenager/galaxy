@@ -36,7 +36,10 @@ class BaseCwlWorklfowTestCase(BaseWorkflowsApiTestCase):
         try:
             for key, value in expected_outputs.items():
                 actual_output = run.get_output_as_object(key)
-                self.assertEquals(value, actual_output)
+                if isinstance(value, dict):
+                    assert cmp(value, actual_output)
+                else:
+                    self.assertEquals(value, actual_output)
         except AssertionError:
             self.dataset_populator._summarize_history_errors(self.history_id)
             raise
@@ -56,8 +59,6 @@ class BaseCwlWorklfowTestCase(BaseWorkflowsApiTestCase):
 
 class CwlWorkflowsTestCase(BaseCwlWorklfowTestCase):
     """Test case encompassing CWL workflow tests."""
-
-    v1_conformance_tests = yaml.load(open(os.path.join(cwl_tool_directory, "v1.0", "conformance_tests.yaml"), "r"))
 
     def test_simplest_wf(self):
         """Test simplest workflow."""
@@ -132,6 +133,9 @@ class CwlWorkflowsTestCase(BaseCwlWorklfowTestCase):
     def test_scatter_wf1_v1(self):
         self._run_workflow_job("v1.0/scatter-wf1.cwl", "v1.0/scatter-job1.json")
         self.dataset_populator.get_history_collection_details(self.history_id, hid=5)
+
+    def test_record_io(self):
+        self.run_conformance_test("v1.0_custom", "Test record type inputs to and outputs from workflows.")
 
     def _run_count_lines_wf(self, wf_path):
         workflow_id = self._load_workflow(wf_path)

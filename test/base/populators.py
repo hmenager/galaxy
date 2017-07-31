@@ -123,10 +123,12 @@ def galactic_job_json(job, test_data_directory, upload_func, collection_create_f
         collection_element_identifiers = []
         for record_key, record_value in value.items():
             if record_value.get("class") != "File":
-                raise NotImplementedError()
+                dataset = replacement_item(record_value, force_to_file=True)
+                collection_element = dataset.copy()
+            else:
+                dataset = upload_file(record_value["location"])
+                collection_element = dataset.copy()
 
-            dataset = upload_file(record_value["location"])
-            collection_element = dataset.copy()
             collection_element["name"] = record_key
             collection_element_identifiers.append(collection_element)
 
@@ -232,9 +234,15 @@ class CwlWorkflowRun( object ):
             if collection_details["collection_type"] == "list":
                 rval = []
                 for element in collection_details["elements"]:
+                    if element["object"]["history_content_type"] != "dataset":
+                        raise NotImplementedError()
                     rval.append(dataset_to_json(element["object"]))
-            else:
-                raise NotImplementedError()
+            elif collection_details["collection_type"] == "record":
+                rval = {}
+                for element in collection_details["elements"]:
+                    if element["object"]["history_content_type"] != "dataset":
+                        raise NotImplementedError()
+                    rval[element["element_identifier"]] = dataset_to_json(element["object"])
             return rval
         else:
             raise Exception("Unknown output [%s] encountered for invocation [%s]" % (output_name, invocation))

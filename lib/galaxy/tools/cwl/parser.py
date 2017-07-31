@@ -595,6 +595,9 @@ class WorkflowProxy(object):
         elif isinstance(input_type, dict) and input_type.get("type") == "array":
             input_as_dict["type"] = "data_collection_input"
             input_as_dict["collection_type"] = "list"
+        elif isinstance(input_type, dict) and input_type.get("type") == "record":
+            input_as_dict["type"] = "data_collection_input"
+            input_as_dict["collection_type"] = "record"
         else:
             raise NotImplementedError()
 
@@ -745,7 +748,8 @@ class InputProxy(object):
         }
         if "linkMerge" in self._cwl_input:
             as_dict["merge_type"] = self._cwl_input["linkMerge"]
-        as_dict["scatter_method"] = self.step_proxy._step.tool["scatterMethod"]
+        if "scatterMethod" in self.step_proxy._step.tool:
+            as_dict["scatter_method"] = self.step_proxy._step.tool["scatterMethod"]
         return as_dict
 
 
