@@ -734,16 +734,30 @@ class InputProxy(object):
         self._cwl_input = cwl_input
         self.step_proxy = step_proxy
         cwl_input_id = cwl_input["id"]
-        cwl_source_id = cwl_input["source"]
-        step_name, input_name = split_step_references(
-            cwl_input_id,
-            multiple=False,
-            workflow_id=step_proxy.cwl_workflow_id
-        )
+        cwl_source_id = cwl_input.get("source", None)
+        if cwl_source_id is None:
+            if "valueFrom" not in cwl_input:
+                raise NotImplementedError("Workflow step input must define a source or a valueFrom value.")
+
+        if cwl_source_id is not None:
+            step_name, input_name = split_step_references(
+                cwl_input_id,
+                multiple=False,
+                workflow_id=step_proxy.cwl_workflow_id
+            )
+            self.step_name = step_name
+            self.input_name = input_name
+        else:
+            self.step_name = None
+            self.input_name = None
+
         self.cwl_input_id = cwl_input_id
         self.cwl_source_id = cwl_source_id
-        self.step_name = step_name
-        self.input_name = input_name
+
+        scatter = False
+        if self.input_name in listify(step_proxy._step.tool.get("scatter", [])):
+            scatter = True
+        self.scatter = scatter
 
     def to_dict(self):
         as_dict = {
@@ -752,7 +766,9 @@ class InputProxy(object):
         if "linkMerge" in self._cwl_input:
             as_dict["merge_type"] = self._cwl_input["linkMerge"]
         if "scatterMethod" in self.step_proxy._step.tool:
-            as_dict["scatter_method"] = self.step_proxy._step.tool["scatterMethod"]
+            as_dict["scatter_type"] = self.step_proxy._step.tool.get("scatterMethod", "dotproduct")
+        else:
+            as_dict["scatter_type"] = "dotproduct" if self.scatter else "disabled"
         if "valueFrom" in self._cwl_input:
             # TODO: Add a table for expressions - mark the type as CWL 1.0 JavaScript.
             as_dict["value_from"] = self._cwl_input["valueFrom"]

@@ -2368,9 +2368,9 @@ class CwlTool( Tool ):
 
         command_line = " ".join([shellescape.quote(arg) if needs_shell_quoting(arg) else arg for arg in cwl_command_line])
         if cwl_stdin:
-            command_line += '< "' + cwl_stdin + '"'
+            command_line += ' < "' + cwl_stdin + '"'
         if cwl_stdout:
-            command_line += '> "' + cwl_stdout + '"'
+            command_line += ' > "' + cwl_stdout + '"'
         cwl_job_state = {
             'args': cwl_command_line,
             'stdin': cwl_stdin,

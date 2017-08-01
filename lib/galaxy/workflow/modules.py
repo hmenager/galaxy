@@ -879,10 +879,14 @@ class ToolModule( WorkflowModule ):
         def to_cwl(value):
             if isinstance(value, model.HistoryDatasetAssociation):
                 hda_references.append(value)
-                return {
-                    "class": "File",
-                    "location": "step_input://%d" % len(hda_references),
-                }
+                if value.ext == "expression.json":
+                    with open( value.file_name, "r" ) as f:
+                        return loads(f.read())
+                else:
+                    return {
+                        "class": "File",
+                        "location": "step_input://%d" % len(hda_references),
+                    }
             elif hasattr(value, "collection"):
                 collection = value.collection
                 if collection.collection_type == "list":
@@ -983,13 +987,19 @@ class ToolModule( WorkflowModule ):
                 message = message_template % (tool.name, k.message)
                 raise exceptions.MessageException( message )
 
-            self.evaluate_value_from_expressions(
-                step, execution_state
-            )
+            extra_step_state = {}
+            for step_input in step.inputs:
+                if step_input.name not in execution_state.inputs:
+                    value = progress.replacment_for_step_input( step, step_input )
+                    extra_step_state[step_input.name] = value
 
             unmatched_input_connections = expected_replacement_keys - found_replacement_keys
             if unmatched_input_connections:
                 log.warn("Failed to use input connections for inputs [%s]" % unmatched_input_connections)
+
+            self.evaluate_value_from_expressions(
+                step, execution_state
+            )
 
             param_combinations.append( execution_state.inputs )
 
@@ -1050,11 +1060,15 @@ class ToolModule( WorkflowModule ):
         collections_to_match = matching.CollectionsToMatch()
 
         def callback( input, prefixed_name, **kwargs ):
-            step_input = step.inputs_by_name[ prefixed_name ]
+            step_input = step.inputs_by_name.get( prefixed_name, None )
             scatter_type = "dotproduct"
             if step_input:
                 scatter_type = step_input.scatter_type
-            assert scatter_type == "dotproduct"
+            assert scatter_type in ["dotproduct", "disabled"]
+
+            log.info("SCATTER_TYPE IS %s" % scatter_type)
+            if scatter_type == "disabled":
+                return
 
             is_data_param = isinstance( input, DataToolParameter )
             if is_data_param and not input.multiple:
