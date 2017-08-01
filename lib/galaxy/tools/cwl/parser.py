@@ -600,7 +600,9 @@ class WorkflowProxy(object):
             input_as_dict["type"] = "data_collection_input"
             input_as_dict["collection_type"] = "record"
         else:
-            input_as_dict["type"] = "parameter_input"
+            # input_as_dict["type"] = "parameter_input"
+            input_as_dict["type"] = "data_input"
+            # TODO: format = expression.json
 
         return input_as_dict
 

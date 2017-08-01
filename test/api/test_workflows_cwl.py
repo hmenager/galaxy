@@ -137,6 +137,9 @@ class CwlWorkflowsTestCase(BaseCwlWorklfowTestCase):
     def test_record_io(self):
         self.run_conformance_test("v1.0_custom", "Test record type inputs to and outputs from workflows.")
 
+    def test_workflow_int_io(self):
+        self.run_conformance_test("v1.0_custom", "Test integer workflow input and outputs")
+
     def _run_count_lines_wf(self, wf_path):
         workflow_id = self._load_workflow(wf_path)
         hda1 = self.dataset_populator.new_dataset(self.history_id, content="hello world\nhello all\nhello all in world\nhello")

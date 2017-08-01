@@ -92,7 +92,7 @@ def galactic_job_json(job, test_data_directory, upload_func, collection_create_f
         if isinstance(value, list):
             return replacement_list(value)
         elif not isinstance(value, dict):
-            return value
+            return upload_object(value)
 
         if is_file:
             return replacement_file(value)

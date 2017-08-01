@@ -17,3 +17,8 @@
     }
   tool: v1.0_custom/record-output-wf.cwl
   doc: Test record type inputs to and outputs from workflows.
+
+- job: v1.0_custom/int-io-job.json
+  output: {"o": 10}
+  tool: v1.0_custom/int-io-wf.cwl
+  doc: Test integer workflow input and outputs

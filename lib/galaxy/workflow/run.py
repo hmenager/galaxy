@@ -311,21 +311,23 @@ class WorkflowProgress( object ):
                     input_collection_type = None
                     for i, c in enumerate(connection):
                         input_from_connection = self.replacement_for_connection( c, is_data=is_data )
-                        input_history_content_type = input_from_connection.history_content_type
-                        if i == 0:
-                            if input_history_content_type == "dataset_collection":
-                                input_collection_type = input_from_connection.collection.collection_type
+                        is_data = hasattr(input_from_connection, "history_content_type")
+                        if is_data:
+                            input_history_content_type = input_from_connection.history_content_type
+                            if i == 0:
+                                if input_history_content_type == "dataset_collection":
+                                    input_collection_type = input_from_connection.collection.collection_type
+                                else:
+                                    input_collection_type = None
                             else:
-                                input_collection_type = None
-                        else:
-                            if input_collection_type is None:
-                                if input_history_content_type != "dataset":
-                                    raise Exception("Cannot map over a combination of datasets and collections.")
-                            else:
-                                if input_history_content_type != "dataset_collection":
-                                    raise Exception("Cannot merge over combinations of datasets and collections.")
-                                elif input_from_connection.collection.collection_type != input_collection_type:
-                                    raise Exception("Cannot merge collections of different collection types.")
+                                if input_collection_type is None:
+                                    if input_history_content_type != "dataset":
+                                        raise Exception("Cannot map over a combination of datasets and collections.")
+                                else:
+                                    if input_history_content_type != "dataset_collection":
+                                        raise Exception("Cannot merge over combinations of datasets and collections.")
+                                    elif input_from_connection.collection.collection_type != input_collection_type:
+                                        raise Exception("Cannot merge collections of different collection types.")
 
                         inputs.append(input_from_connection)
 
