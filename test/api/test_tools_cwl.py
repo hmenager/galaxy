@@ -6,6 +6,8 @@ from base import api
 from base.populators import DatasetPopulator
 from base.populators import skip_without_tool
 
+from galaxy.tools.cwl.representation import USE_FIELD_TYPES
+
 IS_OS_X = _platform == "darwin"
 
 
@@ -22,11 +24,17 @@ class CwlToolsTestCase( api.ApiTestCase ):
         """Test execution of cat1 using the "normal" Galaxy job API representation."""
         history_id = self.dataset_populator.new_history()
         hda1 = _dataset_to_param( self.dataset_populator.new_dataset( history_id, content='1\n2\n3' ) )
-        inputs = {
-            "file1": hda1,
-            "numbering|_cwl__type_": "boolean",
-            "numbering|_cwl__value_": True,
-        }
+        if not USE_FIELD_TYPES:
+            inputs = {
+                "file1": hda1,
+                "numbering|_cwl__type_": "boolean",
+                "numbering|_cwl__value_": True,
+            }
+        else:
+            inputs = {
+                "file1": hda1,
+                "numbering": {"src": "json", "value": True},
+            }
         stdout = self._run_and_get_stdout( "cat1-tool", history_id, inputs, assert_ok=True )
         self.assertEquals(stdout, "     1\t1\n     2\t2\n     3\t3\n")
 
@@ -267,6 +275,20 @@ class CwlToolsTestCase( api.ApiTestCase ):
         )
         output1_content = self.dataset_populator.get_history_dataset_content( run_object.history_id )
         assert output1_content == '"7"', output1_content
+
+    @skip_without_tool( "any1" )
+    def test_any1_file( self ):
+        run_object = self.dataset_populator.run_cwl_tool(
+            "any1",
+            job={"bar": {
+                "class": "File",
+                "location": "whale.txt",
+            }},
+            test_data_directory="test/functional/tools/cwl_tools/draft3/",
+        )
+        output1_content = self.dataset_populator.get_history_dataset_content( run_object.history_id )
+        self.dataset_populator._summarize_history_errors(run_object.history_id)
+        assert output1_content == '"File"', "[%s]" % output1_content
 
     @skip_without_tool( "any1" )
     def test_any1_2( self ):

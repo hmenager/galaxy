@@ -411,6 +411,7 @@ class BaseDatasetPopulator( object ):
             path = os.path.join(tool_id)
             data = dict(
                 from_path=path,
+                allow_tool_state_corrections=True,
             )
             upload_response = self._post(route, data=data)
             api_asserts.assert_status_code_is(upload_response, 200)
@@ -422,6 +423,7 @@ class BaseDatasetPopulator( object ):
                 workflow_id=workflow_id,
                 inputs=json.dumps(job_as_dict),
                 inputs_by="name",
+                allow_tool_state_corrections=True,
             )
             url = "workflows/%s/invocations" % workflow_id
             invocation_response = self._post(url, data=workflow_request)

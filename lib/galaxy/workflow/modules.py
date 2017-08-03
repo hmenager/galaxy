@@ -31,6 +31,7 @@ from galaxy.tools.parameters.basic import (
     BooleanToolParameter,
     DataCollectionToolParameter,
     DataToolParameter,
+    FieldTypeToolParameter,
     parameter_types,
     RuntimeValue,
     SelectToolParameter,
@@ -447,13 +448,16 @@ class InputParameterModule( WorkflowModule ):
     name = "Input parameter"
     default_parameter_type = "text"
     default_optional = False
+    default_default_value = ''
     parameter_type = default_parameter_type
     optional = default_optional
+    default_value = default_default_value
 
     def get_inputs( self ):
         # TODO: Use an external xml or yaml file to load the parameter definition
         parameter_type = self.state.inputs.get( "parameter_type", self.default_parameter_type )
         optional = self.state.inputs.get( "optional", self.default_optional )
+        default_value = self.state.inputs.get( "default_value", self.default_value ) or ''
         input_parameter_type = SelectToolParameter( None, XML(
             '''
             <param name="parameter_type" label="Parameter type" type="select" value="%s">
@@ -462,20 +466,32 @@ class InputParameterModule( WorkflowModule ):
                 <option value="float">Float</option>
                 <option value="boolean">Boolean (True or False)</option>
                 <option value="color">Color</option>
+                <option value="field">Field</option>
             </param>
             ''' % parameter_type ) )
+        input_default_value = FieldTypeToolParameter( None, XML(
+            '''
+            <param name="default" label="Default Value" type="field" value="%s">
+            </param>
+            '''
+            % default_value ) )
         return odict([( "parameter_type", input_parameter_type ),
-                      ( "optional", BooleanToolParameter( None, Element( "param", name="optional", label="Optional", type="boolean", value=optional )))])
+                      ( "optional", BooleanToolParameter( None, Element( "param", name="optional", label="Optional", type="boolean", value=optional ))),
+                      ( "default_value", input_default_value )])
 
     def get_runtime_inputs( self, **kwds ):
         parameter_type = self.state.inputs.get("parameter_type", self.default_parameter_type)
         optional = self.state.inputs.get("optional", self.default_optional)
-        if parameter_type not in ["text", "boolean", "integer", "float", "color"]:
+        if parameter_type not in ["text", "boolean", "integer", "float", "color", "field"]:
             raise ValueError("Invalid parameter type for workflow parameters encountered.")
         parameter_class = parameter_types[parameter_type]
         parameter_kwds = {}
-        if parameter_type in ["integer", "float"]:
-            parameter_kwds["value"] = str(0)
+        default_value = self.state.inputs.get("default_value", self.default_default_value)
+        if default_value:
+            parameter_kwds["value"] = str(default_value)
+        else:
+            if parameter_type in ["integer", "float"]:
+                parameter_kwds["value"] = str(0)
 
         # TODO: Use a dict-based description from YAML tool source
         element = Element("param", name="input", label=self.label, type=parameter_type, optional=str(optional), **parameter_kwds )
@@ -491,9 +507,17 @@ class InputParameterModule( WorkflowModule ):
         return []
 
     def execute( self, trans, progress, invocation, step ):
-        job, step_outputs = None, dict( output=step.state.inputs['input'])
+        input_value = step.state.inputs['input']
+        if input_value is None:
+            default_value = loads(step.tool_inputs.get("default_value", "{}"))
+            input_value = default_value.get("value")
+        job, step_outputs = None, dict( output=input_value )
+
         progress.set_outputs_for_input( step, step_outputs )
         return job
+
+    def recover_mapping( self, step, step_invocations, progress ):
+        progress.set_outputs_for_input( step )
 
 
 # TODO: Implementation of this was for older framework - need to redo it now
@@ -972,10 +996,18 @@ class ToolModule( WorkflowModule ):
                 if replacement is not NO_REPLACEMENT:
                     found_replacement_keys.add(prefixed_name)
 
-                is_data = isinstance( input, DataToolParameter ) or isinstance( input, DataCollectionToolParameter )
-                if not is_data and getattr( replacement, "history_content_type", None ) == "dataset":
+                is_data = isinstance( input, DataToolParameter ) or isinstance( input, DataCollectionToolParameter ) or isinstance( input, FieldTypeToolParameter )
+                if not is_data and getattr( replacement, "history_content_type", None ) == "dataset" and getattr( replacement, "ext", None ) == "expression.json":
                     with open( replacement.file_name, "r" ) as f:
                         replacement = loads(f.read())
+
+                if isinstance( input, FieldTypeToolParameter ):
+                    if isinstance( replacement, model.HistoryDatasetAssociation ):
+                        replacement = {"src": "hda", "value": replacement}
+                    elif isinstance( replacement, model.HistoryDatasetCollectionAssociation ):
+                        replacement = {"src": "hdca", "value": replacement}
+                    else:
+                        replacement = {"src": "json", "value": replacement}
 
                 return replacement
 

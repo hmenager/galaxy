@@ -119,7 +119,7 @@
   <tool file="cwl_tools/draft3/null-expression2-tool.cwl" />
   <tool file="cwl_tools/draft3/params.cwl" />
   <tool file="cwl_tools/draft3/parseInt-tool.cwl" />
-  <tool file="cwl_tools/draft3_custom/any1.cwl" />
+  <tool file="cwl_tools/v1.0_custom/any1.cwl" />
 
   <!-- CWL Testing -->
   <tool file="cwl_tools/draft3/cat1-tool.cwl" />

@@ -12,6 +12,8 @@ from galaxy.exceptions import RequestParameterInvalidException
 from galaxy.util import safe_makedirs, string_as_bool
 from galaxy.util.bunch import Bunch
 
+from galaxy.tools.wrappers import DatasetFilenameWrapper, DatasetCollectionWrapper, InputValueWrapper
+
 log = logging.getLogger(__name__)
 
 NOT_PRESENT = object()
@@ -25,9 +27,29 @@ INPUT_TYPE = Bunch(
     TEXT="text",
     BOOLEAN="boolean",
     SELECT="select",
+    FIELD="field",
     CONDITIONAL="conditional",
     DATA_COLLECTON="data_collection",
 )
+
+# There are two approaches to mapping CWL tool state to Galaxy tool state
+# one is to map CWL types to compound Galaxy tool parameters combinations
+# with conditionals and the other is to use a new Galaxy parameter type that
+# allows unions, optional specifications, etc.... The problem with the former
+# is that it doesn't work with the workflow parameters for instance and is
+# very complex on the backend. The problem with the latter is that the GUI
+# for this parameter type is undefined curently.
+USE_FIELD_TYPES = True
+
+# There are two approaches to mapping CWL workflow inputs to Galaxy workflow
+# steps. The first is to simply map everything to expressions and stick them into
+# files and use data inputs - the second is to use parameter_input steps with
+# fields types. We are dispatching on USE_FIELD_TYPES for now - to choose but
+# may diverge later?
+# There are open issues with each approach:
+#  - Mapping everything to files makes the GUI harder to imagine but the backend
+#     easier to manage in someways.
+USE_STEP_PARAMETERS = USE_FIELD_TYPES
 
 TypeRepresentation = collections.namedtuple("TypeRepresentation", ["name", "galaxy_param_type", "label", "collection_type"])
 TYPE_REPRESENTATIONS = [
@@ -40,20 +62,35 @@ TYPE_REPRESENTATIONS = [
     TypeRepresentation("record", INPUT_TYPE.DATA_COLLECTON, "record as a dataset collection", "record"),
     TypeRepresentation("json", INPUT_TYPE.TEXT, "arbitrary JSON structure", None),
     TypeRepresentation("array", INPUT_TYPE.DATA_COLLECTON, "as a dataset list", "list"),
+    TypeRepresentation("field", INPUT_TYPE.FIELD, "arbitrary JSON structure", None),
 ]
+FIELD_TYPE_REPRESENTATION = TYPE_REPRESENTATIONS[-1]
 TypeRepresentation.uses_param = lambda self: self.galaxy_param_type is not NO_GALAXY_INPUT
 
-CWL_TYPE_TO_REPRESENTATIONS = {
-    "Any": ["integer", "float", "file", "boolean", "text", "record", "json"],
-    "array": ["array"],
-    "string": ["text"],
-    "boolean": ["boolean"],
-    "int": ["integer"],
-    "float": ["float"],
-    "File": ["file"],
-    "null": ["null"],
-    "record": ["record"],
-}
+if not USE_FIELD_TYPES:
+    CWL_TYPE_TO_REPRESENTATIONS = {
+        "Any": ["integer", "float", "file", "boolean", "text", "record", "json"],
+        "array": ["array"],
+        "string": ["text"],
+        "boolean": ["boolean"],
+        "int": ["integer"],
+        "float": ["float"],
+        "File": ["file"],
+        "null": ["null"],
+        "record": ["record"],
+    }
+else:
+    CWL_TYPE_TO_REPRESENTATIONS = {
+        "Any": ["field"],
+        "array": ["array"],
+        "string": ["text"],
+        "boolean": ["boolean"],
+        "int": ["integer"],
+        "float": ["float"],
+        "File": ["file"],
+        "null": ["null"],
+        "record": ["record"],
+    }
 
 
 def type_representation_from_name(type_representation_name):
@@ -94,6 +131,10 @@ def to_cwl_job(tool, param_dict, local_working_directory):
         # like in the case of json for instance.
 
         def dataset_wrapper_to_file_json(dataset_wrapper):
+            if dataset_wrapper.ext == "expression.json":
+                with open(dataset_wrapper.file_name, "r") as f:
+                    return json.load(f)
+
             extra_files_path = dataset_wrapper.extra_files_path
             secondary_files_path = os.path.join(extra_files_path, "__secondary_files__")
             path = str(dataset_wrapper)
@@ -109,6 +150,18 @@ def to_cwl_job(tool, param_dict, local_working_directory):
 
             return {"location": path,
                     "class": "File"}
+
+        def collection_wrapper_to_array(wrapped_value):
+            rval = []
+            for value in wrapped_value:
+                rval.append(dataset_wrapper_to_file_json(value))
+            return rval
+
+        def collection_wrapper_to_record(wrapped_value):
+            rval = dict()  # TODO: THIS NEEDS TO BE ORDERED BUT odict not json serializable!
+            for key, value in wrapped_value.items():
+                rval[key] = dataset_wrapper_to_file_json(value)
+            return rval
 
         if type_representation.galaxy_param_type == NO_GALAXY_INPUT:
             assert param_dict_value is None
@@ -130,17 +183,27 @@ def to_cwl_job(tool, param_dict, local_working_directory):
         elif type_representation.name == "json":
             raw_value = param_dict_value.value
             return json.loads(raw_value)
+        elif type_representation.name == "field":
+            if param_dict_value is None:
+                return None
+            if isinstance(param_dict_value, InputValueWrapper):
+                return param_dict_value.value["value"]
+            elif isinstance(param_dict_value, DatasetFilenameWrapper):
+                return dataset_wrapper_to_file_json(param_dict_value)
+            else:
+                assert isinstance(param_dict_value, DatasetCollectionWrapper)
+                hdca_wrapper = param_dict_value
+                if hdca_wrapper.collection_type == "list":
+                    # TODO: generalize to lists of lists and lists of non-files...
+                    return collection_wrapper_to_array(hdca_wrapper)
+                elif hdca_wrapper.collection_type.collection_type == "record":
+                    return collection_wrapper_to_record(hdca_wrapper)
+
         elif type_representation.name == "array":
             # TODO: generalize to lists of lists and lists of non-files...
-            rval = []
-            for value in param_dict_value:
-                rval.append(dataset_wrapper_to_file_json(value))
-            return rval
+            return collection_wrapper_to_array(param_dict_value)
         elif type_representation.name == "record":
-            rval = dict()  # TODO: THIS NEEDS TO BE ORDERED BUT odict not json serializable!
-            for key, value in param_dict_value.items():
-                rval[key] = dataset_wrapper_to_file_json(value)
-            return rval
+            return collection_wrapper_to_record(param_dict_value)
         else:
             return str(param_dict_value)
 
@@ -165,12 +228,16 @@ def to_cwl_job(tool, param_dict, local_working_directory):
                 if field["name"] == input_name:
                     matched_field = field
             field_type = field_to_field_type(matched_field)
-            assert not isinstance(field_type, list)
-            type_descriptions = type_descriptions_for_field_types([field_type])
+            if isinstance(field_type, list):
+                assert USE_FIELD_TYPES
+                type_descriptions = [FIELD_TYPE_REPRESENTATION]
+            else:
+                type_descriptions = type_descriptions_for_field_types([field_type])
             assert len(type_descriptions) == 1
             type_description_name = type_descriptions[0].name
             input_json[input_name] = simple_value(input, param_dict[input_name], type_description_name)
 
+    log.debug("Galaxy Tool State is CWL State is %s" % input_json)
     return input_json
 
 
@@ -225,6 +292,8 @@ def to_galaxy_parameters(tool, as_dict):
                 type_representation_name = "string"
             elif isinstance(as_dict_value, dict) and "src" in as_dict_value and "id" in as_dict_value and "file" in case_strings:
                 type_representation_name = "file"
+            elif "field" in case_strings:
+                type_representation_name = "field"
             elif "json" in case_strings and as_dict_value is not None:
                 type_representation_name = "json"
             else:

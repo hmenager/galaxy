@@ -15,6 +15,7 @@ from galaxy.tools.parameters import (
 from galaxy.tools.parameters.basic import (
     DataCollectionToolParameter,
     DataToolParameter,
+    FieldTypeToolParameter,
     SelectToolParameter,
 )
 from galaxy.tools.parameters.grouping import (
@@ -256,6 +257,23 @@ class ToolEvaluator( object ):
                     **wrapper_kwds
                 )
                 input_values[ input.name ] = wrapper
+            elif isinstance( input, FieldTypeToolParameter ):
+                if value is None:
+                    field_wrapper = None
+                else:
+                    assert "value" in value, value
+                    assert "src" in value
+                    src = value["src"]
+                    if src == "json":
+                        field_wrapper = InputValueWrapper( input, value, param_dict )
+                    elif src == "hda":
+                        field_wrapper = DatasetFilenameWrapper( value["value"],
+                                                                datatypes_registry=self.app.datatypes_registry,
+                                                                tool=self,
+                                                                name=input.name )
+                    else:
+                        assert False
+                input_values[ input.name ] = field_wrapper
             elif isinstance( input, SelectToolParameter ):
                 input_values[ input.name ] = SelectToolParameterWrapper(
                     input, value, other_values=param_dict, path_rewriter=self.unstructured_path_rewriter )

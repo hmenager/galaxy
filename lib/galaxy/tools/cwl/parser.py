@@ -25,7 +25,14 @@ from .cwltool_deps import (
     process,
     workflow,
 )
-from .representation import field_to_field_type, INPUT_TYPE, type_descriptions_for_field_types
+from .representation import (
+    field_to_field_type,
+    FIELD_TYPE_REPRESENTATION,
+    INPUT_TYPE,
+    type_descriptions_for_field_types,
+    USE_FIELD_TYPES,
+    USE_STEP_PARAMETERS,
+)
 
 from .schema import non_strict_schema_loader, schema_loader
 
@@ -591,7 +598,7 @@ class WorkflowProxy(object):
             "input_connections": {},  # Should the Galaxy API really require this? - Seems to.
         }
 
-        if input_type == "File":
+        if input_type == "File" and "default" not in input:
             input_as_dict["type"] = "data_input"
         elif isinstance(input_type, dict) and input_type.get("type") == "array":
             input_as_dict["type"] = "data_collection_input"
@@ -600,9 +607,24 @@ class WorkflowProxy(object):
             input_as_dict["type"] = "data_collection_input"
             input_as_dict["collection_type"] = "record"
         else:
-            # input_as_dict["type"] = "parameter_input"
-            input_as_dict["type"] = "data_input"
-            # TODO: format = expression.json
+            if USE_STEP_PARAMETERS:
+                input_as_dict["type"] = "parameter_input"
+                # TODO: dispatch on actual type so this doesn't always need
+                # to be field - simpler types could be simpler inputs.
+                tool_state = {}
+                tool_state["parameter_type"] = "field"
+                default_value = input.get("default")
+                optional = False
+                if isinstance(input_type, list) and "null" in input_type:
+                    optional = True
+                if not optional and isinstance(input_type, dict) and "type" in input_type:
+                    assert False
+                tool_state["default_value"] = {"src": "json", "value": default_value}
+                tool_state["optional"] = optional
+                input_as_dict["tool_state"] = tool_state
+            else:
+                input_as_dict["type"] = "data_input"
+                # TODO: format = expression.json
 
         return input_as_dict
 
@@ -806,7 +828,6 @@ class ToolStepProxy(BaseStepProxy):
             "tool_hash": tool_hash,
             "label": self.label,
             "position": {"left": 0, "top": 0},
-            "tool_state": tool_state,
             "type": "tool",
             "annotation": self._workflow_proxy.cwl_object_to_annotation(self._step.tool),
             "input_connections": input_connections,
@@ -905,7 +926,7 @@ def _outer_field_to_input_instance(field):
     # If there is more than one way to represent this parameter - produce a conditional
     # requesting user to ask for what form they want to submit the data in, else just map
     # a simple Galaxy parameter.
-    if len(case_options) > 1:
+    if len(case_options) > 1 and not USE_FIELD_TYPES:
         case_input = SelectInputInstance(
             name=case_name,
             label=case_label,
@@ -915,7 +936,11 @@ def _outer_field_to_input_instance(field):
 
         return ConditionalInstance(name, case_input, case_options)
     else:
-        only_type_description = type_descriptions[0]
+        if len(case_options) > 1:
+            only_type_description = FIELD_TYPE_REPRESENTATION
+        else:
+            only_type_description = type_descriptions[0]
+
         return InputInstance(
             name, label, description, input_type=only_type_description.galaxy_param_type, collection_type=only_type_description.collection_type
         )

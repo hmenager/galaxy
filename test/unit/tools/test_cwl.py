@@ -11,6 +11,7 @@ import galaxy.model
 from galaxy.tools.cwl import tool_proxy
 from galaxy.tools.cwl.parser import ToolProxy
 from galaxy.tools.cwl import workflow_proxy
+from galaxy.tools.cwl.representation import USE_FIELD_TYPES
 
 from galaxy.tools.parser.factory import get_tool_source
 
@@ -228,6 +229,16 @@ def test_workflow_input_without_source():
     assert inputs[2].get("value_from")
 
 
+def test_workflow_simple_optional_input():
+    proxy = workflow_proxy(_cwl_tool_path("v1.0_custom/int-opt-io-wf.cwl"))
+
+    galaxy_workflow_dict = proxy.to_dict()
+    assert len(galaxy_workflow_dict["steps"]) == 2
+
+    input_step = galaxy_workflow_dict["steps"][0]
+    assert input_step['type'] == "data_input"
+
+
 def test_load_proxy_simple():
     cat3 = _cwl_tool_path("draft3/cat3-tool.cwl")
     tool_source = get_tool_source(cat3)
@@ -326,13 +337,18 @@ def test_cat1():
 
     assert len(inputs) == 2
     file_input = inputs[0]
-    null_or_bool_input = inputs[1]
 
     assert file_input.parse_input_type() == "param"
     assert file_input.get("type") == "data", file_input.get("type")
 
     # User needs to specify if want to select boolean or not.
-    assert null_or_bool_input.parse_input_type() == "conditional"
+    if not USE_FIELD_TYPES:
+        null_or_bool_input = inputs[1]
+        assert null_or_bool_input.parse_input_type() == "conditional"
+    else:
+        field_input = inputs[1]
+        assert field_input.parse_input_type() == "param"
+        assert field_input.get("type") == "field", field_input.get("type")
 
     output_data, output_collections = _outputs(tool_source)
     assert len(output_data) == 0

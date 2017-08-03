@@ -40,7 +40,7 @@ class BaseCwlWorklfowTestCase(BaseWorkflowsApiTestCase):
                     assert cmp(value, actual_output)
                 else:
                     self.assertEquals(value, actual_output)
-        except AssertionError:
+        except Exception:
             self.dataset_populator._summarize_history_errors(self.history_id)
             raise
 
@@ -139,6 +139,33 @@ class CwlWorkflowsTestCase(BaseCwlWorklfowTestCase):
 
     def test_workflow_int_io(self):
         self.run_conformance_test("v1.0_custom", "Test integer workflow input and outputs")
+
+    def test_workflow_int_io_opt_spec(self):
+        self.run_conformance_test("v1.0_custom", "Test optional integer workflow inputs (specified)")
+
+    def test_workflow_int_io_opt_unspec(self):
+        self.run_conformance_test("v1.0_custom", "Test optional integer workflow inputs (unspecified)")
+
+    def test_workflow_any_int(self):
+        self.run_conformance_test("v1.0_custom", "Test any parameter with integer input to a workflow")
+
+    def test_workflow_any_string(self):
+        self.run_conformance_test("v1.0_custom", "Test any parameter with string input to a workflow")
+
+    def test_workflow_any_file(self):
+        self.run_conformance_test("v1.0_custom", "Test any parameter with file input to a workflow")
+
+    def test_file_input_default_unspecified(self):
+        self.run_conformance_test("v1.0_custom", "Test File input with default unspecified")
+
+    def test_io_input_optional_unspecified(self):
+        self.run_conformance_test("v1.0_custom", "Test default integer workflow inputs (unspecified)")
+
+    def test_union_input_optional_unspecified(self):
+        self.run_conformance_test("v1.0_custom", "Test union type input to workflow with default unspecified")
+
+    def test_union_input_optional_specified_file(self):
+        self.run_conformance_test("v1.0_custom", "Test union type input to workflow with default specified as file")
 
     def _run_count_lines_wf(self, wf_path):
         workflow_id = self._load_workflow(wf_path)
