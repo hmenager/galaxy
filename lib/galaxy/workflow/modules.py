@@ -358,8 +358,8 @@ class SubWorkflowModule( WorkflowModule ):
         if hasattr( self.subworkflow, 'input_steps' ):
             for step in self.subworkflow.input_steps:
                 name = step.label
+                step_module = module_factory.from_workflow_step( self.trans, step )
                 if not name:
-                    step_module = module_factory.from_workflow_step( self.trans, step )
                     name = "%s:%s" % (step.order_index, step_module.get_name())
                 input = dict(
                     input_subworkflow_step_id=step.order_index,
@@ -369,6 +369,8 @@ class SubWorkflowModule( WorkflowModule ):
                     extensions="input",
                     input_type=step.input_type,
                 )
+                if hasattr(step_module, "collection_type"):
+                    input["collection_types"] = [step_module.collection_type]
                 inputs.append(input)
         return inputs
 
