@@ -238,6 +238,20 @@ def test_workflow_input_without_source():
     assert inputs[2].get("value_from")
 
 
+def test_search_workflow():
+    proxy = workflow_proxy(_cwl_tool_path("v1.0/search.cwl#main"))
+    galaxy_workflow_dict = proxy.to_dict()
+    assert len(galaxy_workflow_dict["steps"]) == 5
+    print("======")
+    for i, step in galaxy_workflow_dict["steps"].items():
+        print(str(i) + ":" + step["label"])
+        print(step["input_connections"])
+
+    print("======")
+    print galaxy_workflow_dict
+    assert False
+
+
 def test_workflow_simple_optional_input():
     proxy = workflow_proxy(_cwl_tool_path("v1.0_custom/int-opt-io-wf.cwl"))
 

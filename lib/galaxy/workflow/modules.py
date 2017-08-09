@@ -1145,6 +1145,7 @@ class ToolModule(WorkflowModule):
                     else:
                         replacement = {"src": "json", "value": replacement}
 
+                log.info("replacement for [%s] is [%s]" % (prefixed_name, replacement))
                 return replacement
 
             try:
