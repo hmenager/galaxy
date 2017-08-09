@@ -407,7 +407,7 @@ class SubWorkflowModule( WorkflowModule ):
 
         all_inputs = self.get_all_inputs()
         collection_info = self.compute_collection_info( progress, step, all_inputs )
-        subworkflow_mapping_structure = collection_info.structure
+        subworkflow_mapping_structure = collection_info.structure if collection_info else None
 
         subworkflow_invoker = progress.subworkflow_invoker(
             trans, step, subworkflow_mapping_structure
