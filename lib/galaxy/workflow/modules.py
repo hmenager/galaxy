@@ -273,7 +273,8 @@ class WorkflowModule( object ):
                 scatter_type = step_input.scatter_type
             assert scatter_type in ["dotproduct", "disabled"]
 
-            if scatter_type == "disabled":
+            workflow_mapping_structure = progress.workflow_mapping_structure
+            if workflow_mapping_structure.is_leaf and scatter_type == "disabled":
                 continue
 
             data = progress.replacement_for_input( step, input_dict )
@@ -281,6 +282,15 @@ class WorkflowModule( object ):
 
             if not can_map_over:
                 continue
+
+            if not workflow_mapping_structure.is_leaf:
+                # TODO: replace assert with a proper exception
+                if not workflow_mapping_structure.collection_type_description.is_subcollection_of_type(
+                    data.collection.collection_type, proper=False
+                ):
+                    template = "Workflow input replacement of collection type [%s] is not a super collection of workflow collection type [%s]."
+                    message = template % (data.collection.collection_type, workflow_mapping_structure.collection_type_description)
+                    raise Exception(message)
 
             is_data_param = input_dict["input_type"] == "dataset"
             if is_data_param:
@@ -344,11 +354,6 @@ class SubWorkflowModule( WorkflowModule ):
     def get_all_inputs( self, data_only=False ):
         """ Get configure time data input descriptions. """
         # Filter subworkflow steps and get inputs
-        step_to_input_type = {
-            "data_input": "dataset",
-            "data_collection_input": "dataset_collection",
-            "parameter_input": "parameter",
-        }
         inputs = []
         if hasattr( self.subworkflow, 'input_steps' ):
             for step in self.subworkflow.input_steps:
@@ -356,15 +361,13 @@ class SubWorkflowModule( WorkflowModule ):
                 if not name:
                     step_module = module_factory.from_workflow_step( self.trans, step )
                     name = "%s:%s" % (step.order_index, step_module.get_name())
-                step_type = step.type
-                assert step_type in step_to_input_type
                 input = dict(
                     input_subworkflow_step_id=step.order_index,
                     name=name,
                     label=name,
                     multiple=False,
                     extensions="input",
-                    input_type=step_to_input_type[step_type],
+                    input_type=step.input_type,
                 )
                 inputs.append(input)
         return inputs
@@ -400,8 +403,12 @@ class SubWorkflowModule( WorkflowModule ):
         inputs, etc...
         """
 
+        all_inputs = self.get_all_inputs()
+        collection_info = self.compute_collection_info( progress, step, all_inputs )
+        subworkflow_mapping_structure = collection_info.structure
+
         subworkflow_invoker = progress.subworkflow_invoker(
-            trans, step,
+            trans, step, subworkflow_mapping_structure
         )
         subworkflow_invoker.invoke()
         subworkflow = subworkflow_invoker.workflow

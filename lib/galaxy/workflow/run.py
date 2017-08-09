@@ -1,13 +1,14 @@
-import json
 import logging
 import uuid
 
 from galaxy import model, util
 from galaxy.util import ExecutionTimer
 from galaxy.util.odict import odict
+from galaxy.dataset_collections.structure import leaf
 from galaxy.workflow import modules
 from galaxy.workflow.run_request import (workflow_run_config_to_request,
     WorkflowRunConfig)
+
 
 log = logging.getLogger( __name__ )
 
@@ -141,7 +142,9 @@ class WorkflowInvoker( object ):
 
         module_injector = modules.WorkflowModuleInjector( trans )
         if progress is None:
-            progress = WorkflowProgress( self.workflow_invocation, workflow_run_config.inputs, module_injector )
+            progress = WorkflowProgress(
+                self.workflow_invocation, workflow_run_config.inputs, module_injector
+            )
         self.progress = progress
 
     def invoke( self ):
@@ -248,11 +251,16 @@ STEP_OUTPUT_DELAYED = object()
 
 class WorkflowProgress( object ):
 
-    def __init__( self, workflow_invocation, inputs_by_step_id, module_injector ):
+    def __init__(
+        self, workflow_invocation, inputs_by_step_id, module_injector, workflow_mapping_structure=None
+    ):
         self.outputs = odict()
         self.module_injector = module_injector
         self.workflow_invocation = workflow_invocation
         self.inputs_by_step_id = inputs_by_step_id
+        if workflow_mapping_structure is None:
+            workflow_mapping_structure = leaf
+        self.workflow_mapping_structure = workflow_mapping_structure
 
     def remaining_steps(self):
         # Previously computed and persisted step states.
@@ -489,8 +497,10 @@ class WorkflowProgress( object ):
             raise Exception("Failed to find persisted workflow invocation for step [%s]" % step.id)
         return subworkflow_invocation
 
-    def subworkflow_invoker(self, trans, step):
-        subworkflow_progress = self.subworkflow_progress(step)
+    def subworkflow_invoker(self, trans, step, structure):
+        subworkflow_progress = self.subworkflow_progress(
+            step, structure,
+        )
         subworkflow_invocation = subworkflow_progress.workflow_invocation
         workflow_run_config = WorkflowRunConfig(
             target_history=subworkflow_invocation.history,
@@ -506,7 +516,7 @@ class WorkflowProgress( object ):
             progress=subworkflow_progress,
         )
 
-    def subworkflow_progress(self, step):
+    def subworkflow_progress(self, step, structure):
         subworkflow_invocation = self._subworkflow_invocation(step)
         subworkflow = subworkflow_invocation.workflow
         subworkflow_inputs = {}
@@ -531,6 +541,7 @@ class WorkflowProgress( object ):
             subworkflow_invocation,
             subworkflow_inputs,
             self.module_injector,
+            structure,
         )
 
     def _recover_mapping( self, step, step_invocations ):
