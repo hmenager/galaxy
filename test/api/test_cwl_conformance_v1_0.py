@@ -586,3 +586,11 @@ same input, flattened merge behavior. Workflow inputs are set as list
         """Test union type input to workflow with default specified as file"""
         self.run_conformance_test("""v1.0""", """Test union type input to workflow with default specified as file""")
 
+    def test_conformance_v1_0_133(self):
+        """Test valueFrom on workflow step from literal (string)."""
+        self.run_conformance_test("""v1.0""", """Test valueFrom on workflow step from literal (string).""")
+
+    def test_conformance_v1_0_134(self):
+        """Test valueFrom on workflow step using basename."""
+        self.run_conformance_test("""v1.0""", """Test valueFrom on workflow step using basename.""")
+
