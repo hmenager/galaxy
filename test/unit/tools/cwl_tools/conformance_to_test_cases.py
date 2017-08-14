@@ -19,7 +19,12 @@ $tests
 
 TEST_TEMPLATE = string.Template('''
     def test_conformance_${version_simple}_${index}(self):
-        """${doc}"""
+        """${doc}
+
+        Generated from::
+
+${cwl_test_def}
+        """
         self.run_conformance_test("""${version}""", """${doc}""")
 ''')
 
@@ -35,10 +40,15 @@ def main():
 
     tests = ""
     for i, conformance_test in enumerate(conformance_tests):
+        test_with_doc = conformance_test.copy()
+        del test_with_doc["doc"]
+        cwl_test_def = yaml.dump(test_with_doc, default_flow_style=False)
+        cwl_test_def = "\n".join(["            %s" % l for l in cwl_test_def.splitlines()])
         tests = tests + TEST_TEMPLATE.safe_substitute({
             'version_simple': version_simple,
             'version': version,
             'doc': conformance_test['doc'],
+            'cwl_test_def': cwl_test_def,
             'index': i,
         })
 
