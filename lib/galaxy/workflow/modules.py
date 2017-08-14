@@ -21,6 +21,7 @@ from galaxy.tools import (
     DefaultToolState,
     ToolInputsNotReadyException
 )
+from galaxy.tools.cwl.util import set_basename_and_derived_properties
 from galaxy.tools.execute import execute
 from galaxy.tools.parameters.history_query import HistoryQuery
 from galaxy.tools.parameters import (
@@ -1011,15 +1012,28 @@ class ToolModule( WorkflowModule ):
 
         def to_cwl(value):
             if isinstance(value, model.HistoryDatasetAssociation):
+                if not value.dataset.in_ready_state:
+                    why = "dataset [%s] is needed for valueFrom expression and is non-ready" % value.id
+                    raise DelayedWorkflowEvaluation(why=why)
+
+                if not value.is_ok:
+                    raise CancelWorkflowEvaluation()
+
                 hda_references.append(value)
                 if value.ext == "expression.json":
                     with open( value.file_name, "r" ) as f:
                         return loads(f.read())
                 else:
-                    return {
+                    properties = {
                         "class": "File",
                         "location": "step_input://%d" % len(hda_references),
                     }
+                    set_basename_and_derived_properties(
+                        properties, value.dataset.cwl_filename or value.name
+                    )
+                    log.info("setting properties to %s" % properties)
+                    return properties
+
             elif hasattr(value, "collection"):
                 collection = value.collection
                 if collection.collection_type == "list":
@@ -1108,6 +1122,14 @@ class ToolModule( WorkflowModule ):
 
                 is_data = isinstance( input, DataToolParameter ) or isinstance( input, DataCollectionToolParameter ) or isinstance( input, FieldTypeToolParameter )
                 if not is_data and getattr( replacement, "history_content_type", None ) == "dataset" and getattr( replacement, "ext", None ) == "expression.json":
+                    if isinstance(replacement, model.HistoryDatasetAssociation):
+                        if not replacement.dataset.in_ready_state:
+                            why = "dataset [%s] is needed for non-data connection and is non-ready" % replacement.id
+                            raise DelayedWorkflowEvaluation(why=why)
+
+                        if not replacement.is_ok:
+                            raise CancelWorkflowEvaluation()
+
                     with open( replacement.file_name, "r" ) as f:
                         replacement = loads(f.read())
 

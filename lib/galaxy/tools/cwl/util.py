@@ -11,7 +11,13 @@ from collections import namedtuple
 from six import iteritems, StringIO
 
 
-def output_properties(path=None, content=None):
+def set_basename_and_derived_properties(properties, basename):
+    properties["basename"] = basename
+    properties["nameroot"], properties["nameext"] = os.path.splitext(basename)
+    return properties
+
+
+def output_properties(path=None, content=None, basename=None):
     checksum = hashlib.sha1()
     properties = {
         "class": "File",
@@ -33,6 +39,7 @@ def output_properties(path=None, content=None):
         f.close()
     properties["checksum"] = "sha1$%s" % checksum.hexdigest()
     properties["size"] = filesize
+    set_basename_and_derived_properties(properties, basename)
     return properties
 
 
@@ -183,7 +190,7 @@ def invocation_to_output(invocation, history_id, output_id):
         collection = invocation["output_collections"][output_id]
         galaxy_output = GalaxyOutput(history_id, "dataset_collection", collection["id"])
     else:
-        raise Exception("Failed to find output with label [%s]" % output_id)
+        raise Exception("Failed to find output with label [%s] in [%s]" % (output_id, invocation))
 
     return galaxy_output
 

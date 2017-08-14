@@ -750,17 +750,14 @@ class InputProxy(object):
             if "valueFrom" not in cwl_input:
                 raise NotImplementedError("Workflow step input must define a source or a valueFrom value.")
 
-        if cwl_source_id is not None:
-            step_name, input_name = split_step_references(
-                cwl_input_id,
-                multiple=False,
-                workflow_id=step_proxy.cwl_workflow_id
-            )
-            self.step_name = step_name
-            self.input_name = input_name
-        else:
-            self.step_name = None
-            self.input_name = None
+        assert cwl_input_id
+        step_name, input_name = split_step_references(
+            cwl_input_id,
+            multiple=False,
+            workflow_id=step_proxy.cwl_workflow_id
+        )
+        self.step_name = step_name
+        self.input_name = input_name
 
         self.cwl_input_id = cwl_input_id
         self.cwl_source_id = cwl_source_id

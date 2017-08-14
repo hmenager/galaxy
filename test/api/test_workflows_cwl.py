@@ -4,6 +4,7 @@ import os
 import re
 
 import yaml
+import cwltest
 
 from galaxy.util import galaxy_root_path
 
@@ -36,10 +37,7 @@ class BaseCwlWorklfowTestCase(BaseWorkflowsApiTestCase):
         try:
             for key, value in expected_outputs.items():
                 actual_output = run.get_output_as_object(key)
-                if isinstance(value, dict):
-                    assert cmp(value, actual_output)
-                else:
-                    self.assertEquals(value, actual_output)
+                cwltest.compare(value, actual_output)
         except Exception:
             self.dataset_populator._summarize_history_errors(self.history_id)
             raise

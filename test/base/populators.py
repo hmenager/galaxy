@@ -101,7 +101,10 @@ class CwlRun(object):
 
         def get_dataset(dataset_details):
             content = self.dataset_populator.get_history_dataset_content(self.history_id, dataset_id=dataset_details["id"])
-            return {"content": content}
+            basename = dataset_details.get("cwl_file_name")
+            if not basename:
+                basename = dataset_details.get("name")
+            return {"content": content, "basename": basename}
 
         return output_to_cwl_json(
             galaxy_output,
@@ -288,14 +291,15 @@ class BaseDatasetPopulator( object ):
                     history_id=history_id,
                     content=content,
                     file_type="auto",
-                )
+                    name=os.path.basename( path ),
+                ).json()
             else:
                 content = json.dumps(upload_target.object)
                 return self.new_dataset_request(
                     history_id=history_id,
                     content=content,
                     file_type="expression.json",
-                )
+                ).json()
 
         def create_collection_func(element_identifiers, collection_type):
             payload = {

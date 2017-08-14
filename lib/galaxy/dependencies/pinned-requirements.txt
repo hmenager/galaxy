@@ -81,3 +81,4 @@ chronos-python==0.38.0
 
 # For CWL support.
 cwltool==1.0.20170727112954
+cwltest==1.0.20170809112706  # TODO: only required for testing...

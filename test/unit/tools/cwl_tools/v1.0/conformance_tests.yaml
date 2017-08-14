@@ -1365,7 +1365,7 @@
   doc: Test union type input to workflow with default specified as file
 
 - job: v1.0/empty.json
-  output: {"o": "moocow\n"}
+  output: {"val": "moocow\n"}
   tool: v1.0/step-valuefrom4-wf.cwl
   doc: Test valueFrom on workflow step from literal (string).
 

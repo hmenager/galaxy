@@ -15,7 +15,7 @@ outputs:
     outputSource: step1/echo_out
   val2:
     type: string
-    outputSource: step2/echo_out
+    outputSource: step2/step2_echo_out
 
 steps:
   step1:
@@ -50,24 +50,24 @@ steps:
 
   step2:
     run:
-      id: echo
+      id: echo2
       class: CommandLineTool
       inputs:
         name:
           type: string
           inputBinding: {}
       outputs:
-        echo_out:
+        step2_echo_out:
           type: string
           outputBinding:
-            glob: "step1_out"
+            glob: "step2_out"
             loadContents: true
             outputEval: $(self[0].contents)
       baseCommand: "echo"
-      stdout: step1_out
+      stdout: step2_out
 
     in:
       name:
         source: step1/echo_out_file
         valueFrom: "$(self.basename)"
-    out: [echo_out]
+    out: [step2_echo_out]
