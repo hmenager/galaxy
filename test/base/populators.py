@@ -153,7 +153,7 @@ class BaseDatasetPopulator( object ):
 
     def new_dataset( self, history_id, content='TestData123', wait=False, **kwds ):
         run_response = self.new_dataset_request(history_id, content=content, wait=wait, **kwds)
-        return run_response["outputs"][0]
+        return run_response.json()["outputs"][0]
 
     def new_dataset_request( self, history_id, content='TestData123', wait=False, **kwds ):
         payload = self.upload_payload( history_id, content, **kwds )
