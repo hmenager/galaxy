@@ -53,16 +53,18 @@ def galactic_job_json(job, test_data_directory, upload_func, collection_create_f
         if not os.path.isabs(file_path):
             file_path = os.path.join(test_data_directory, file_path)
         _ensure_file_exists(file_path)
-        upload_response = upload_func(FileUploadTarget(file_path))
+        target = FileUploadTarget(file_path)
+        upload_response = upload_func(target)
         dataset = upload_response["outputs"][0]
-        datasets.append((dataset, file_path))
+        datasets.append((dataset, target))
         dataset_id = dataset["id"]
         return {"src": "hda", "id": dataset_id}
 
     def upload_object(the_object):
-        upload_response = upload_func(ObjectUploadTarget(the_object))
+        target = ObjectUploadTarget(the_object)
+        upload_response = upload_func(target)
         dataset = upload_response["outputs"][0]
-        datasets.append((dataset, the_object))
+        datasets.append((dataset, target))
         dataset_id = dataset["id"]
         return {"src": "hda", "id": dataset_id}
 
