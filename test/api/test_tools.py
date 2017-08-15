@@ -520,22 +520,17 @@ class ToolsTestCase( api.ApiTestCase ):
         payload = dict(
             representation=json.dumps(MINIMAL_TOOL),
         )
-        create_response = self._post( "dynamic_tools", data=payload, admin=True )
+        create_response = self._post( "dynamic_tools", data=payload, admin=False )
         self._assert_status_code_is( create_response, 403 )
 
     def test_dynamic_tool_1( self ):
         # Create tool.
-        payload = dict(
-            representation=json.dumps(MINIMAL_TOOL),
-        )
-        create_response = self._post( "dynamic_tools", data=payload, admin=True )
-        self._assert_status_code_is( create_response, 200 )
+        self.dataset_populator.create_tool( MINIMAL_TOOL )
 
         # Run tool.
         history_id = self.dataset_populator.new_history()
         inputs = {}
-        create_response = self._run( "minimal_tool", history_id, inputs )
-        self._assert_status_code_is( create_response, 200 )
+        self._run( "minimal_tool", history_id, inputs )
 
         self.dataset_populator.wait_for_history( history_id, assert_ok=True )
         output_content = self.dataset_populator.get_history_dataset_content( history_id )

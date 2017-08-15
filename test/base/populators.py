@@ -103,6 +103,16 @@ class BaseDatasetPopulator( object ):
     def get_job_details( self, job_id, full=False ):
         return self._get( "jobs/%s?full=%s" % (job_id, full) )
 
+    def create_tool( self, representation ):
+        if isinstance( representation, dict ):
+            representation = json.dumps( representation )
+        payload = dict(
+            representation=representation,
+        )
+        create_response = self._post( "dynamic_tools", data=payload, admin=True )
+        assert create_response.status_code == 200, create_response
+        return create_response.json()
+
     def _summarize_history( self, history_id ):
         pass
 
@@ -226,12 +236,12 @@ class DatasetPopulator( BaseDatasetPopulator ):
     def __init__( self, galaxy_interactor ):
         self.galaxy_interactor = galaxy_interactor
 
-    def _post( self, route, data={}, files=None ):
+    def _post( self, route, data={}, files=None, admin=False ):
         files = data.get( "__files", None )
         if files is not None:
             del data[ "__files" ]
 
-        return self.galaxy_interactor.post( route, data, files=files )
+        return self.galaxy_interactor.post( route, data, files=files, admin=admin )
 
     def _get( self, route ):
         return self.galaxy_interactor.get( route )
