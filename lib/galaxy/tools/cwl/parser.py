@@ -57,12 +57,16 @@ SUPPORTED_WORKFLOW_REQUIREMENTS = SUPPORTED_TOOL_REQUIREMENTS + [
 ]
 
 
-def tool_proxy(tool_path, strict_cwl_validation=True):
+def tool_proxy(tool_path=None, tool_object=None, strict_cwl_validation=True):
     """ Provide a proxy object to cwltool data structures to just
     grab relevant data.
     """
     ensure_cwltool_available()
-    tool = to_cwl_tool_object(tool_path, strict_cwl_validation=strict_cwl_validation)
+    tool = to_cwl_tool_object(
+        tool_path=tool_path,
+        tool_object=tool_object,
+        strict_cwl_validation=strict_cwl_validation
+    )
     return tool
 
 
@@ -96,9 +100,28 @@ def load_job_proxy(job_directory, strict_cwl_validation=True):
 
 
 def to_cwl_tool_object(tool_path=None, tool_object=None, persisted_tool=None, strict_cwl_validation=True):
+    schema_loader = _schema_loader(strict_cwl_validation)
     if tool_path is not None:
-        cwl_tool = _schema_loader(strict_cwl_validation).tool(
+        cwl_tool = schema_loader.tool(
             path=tool_path
+        )
+    elif tool_object is not None:
+        # Allow loading tools from YAML...
+        from ruamel import yaml as ryaml
+        import json
+        as_str = json.dumps(tool_object)
+        tool_object = ryaml.round_trip_load(as_str)
+        from schema_salad import sourceline
+        from schema_salad.ref_resolver import file_uri
+        uri = file_uri(os.getcwd()) + "/"
+        sourceline.add_lc_filename(tool_object, uri)
+        tool_object, _ = schema_loader.raw_document_loader.resolve_all(tool_object, uri)
+        raw_process_reference = schema_loader.raw_process_reference_for_object(
+            tool_object,
+            uri=uri
+        )
+        cwl_tool = schema_loader.tool(
+            raw_process_reference=raw_process_reference,
         )
     else:
         cwl_tool = ToolProxy.from_persistent_representation(persisted_tool)
@@ -198,10 +221,13 @@ class ToolProxy( object ):
 
     def galaxy_id(self):
         raw_id = self.id
+        tool_id = None
         if raw_id:
-            return os.path.splitext(os.path.basename(raw_id))[0]
-        else:
-            return build_tool_hash(self.to_persistent_representation())
+            tool_id = os.path.splitext(os.path.basename(raw_id))[0]
+        if not tool_id:
+            tool_id = build_tool_hash(self.to_persistent_representation())
+        assert tool_id
+        return tool_id
 
     @abstractmethod
     def input_instances(self):

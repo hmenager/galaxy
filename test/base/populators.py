@@ -112,11 +112,19 @@ class CwlRun(object):
                 basename = dataset_details.get("name")
             return {"content": content, "basename": basename}
 
-        return output_to_cwl_json(
+        output = output_to_cwl_json(
             galaxy_output,
             get_metadata,
             get_dataset,
         )
+        try:
+            if output["class"] == "File" and "location" not in output:
+                output["location"] = output["basename"]
+        except Exception:
+            pass
+
+        return output
+
 
 
 class CwlToolRun( CwlRun ):
@@ -139,11 +147,16 @@ class CwlToolRun( CwlRun ):
     def _output_name_to_object(self, output_name):
         return tool_response_to_output(self.run_response, self.history_id, output_name)
 
+    def wait(self):
+        final_state = self.dataset_populator.wait_for_job( self.job_id )
+        assert final_state == "ok"
+
 
 class CwlWorkflowRun( CwlRun ):
 
-    def __init__(self, dataset_populator, history_id, workflow_id, invocation_id):
+    def __init__(self, dataset_populator, workflow_populator, history_id, workflow_id, invocation_id):
         self.dataset_populator = dataset_populator
+        self.workflow_populator = workflow_populator
         self.history_id = history_id
         self.workflow_id = workflow_id
         self.invocation_id = invocation_id
@@ -153,6 +166,11 @@ class CwlWorkflowRun( CwlRun ):
         api_asserts.assert_status_code_is( invocation_response, 200 )
         invocation = invocation_response.json()
         return invocation_to_output(invocation, self.history_id, output_name)
+
+    def wait(self):
+        self.workflow_populator.wait_for_invocation_and_jobs(
+            self.history_id, self.workflow_id, self.invocation_id
+        )
 
 
 class CwlPopulator( object ):
@@ -219,11 +237,22 @@ class CwlPopulator( object ):
         if datasets_uploaded:
             self.dataset_populator.wait_for_history( history_id=history_id, assert_ok=True )
         if tool_or_workflow == "tool":
+            if os.path.exists(tool_id):
+                # Assume it is a file not a tool_id.
+                with open(tool_id, "r") as f:
+                    representation = yaml.load(f)
+                    if "id" not in representation:
+                        representation["id"] = os.path.splitext(os.path.basename(tool_id))[0]
+
+                    dynamic_tool = self.dataset_populator.create_tool( representation )
+                    tool_id = dynamic_tool["tool_id"]
+                    assert tool_id, dynamic_tool
+
             run_response = self.dataset_populator.run_tool( tool_id, job_as_dict, history_id, inputs_representation="cwl", assert_ok=assert_ok )
             run_object = CwlToolRun( self.dataset_populator, history_id, run_response )
             if assert_ok:
                 try:
-                    final_state = self.wait_for_job( run_object.job_id )
+                    final_state = self.dataset_populator.wait_for_job( run_object.job_id )
                     assert final_state == "ok"
                 except Exception:
                     self.dataset_populator._summarize_history_errors( history_id )
@@ -251,7 +280,7 @@ class CwlPopulator( object ):
             invocation_response = self.dataset_populator._post(url, data=workflow_request)
             api_asserts.assert_status_code_is(invocation_response, 200)
             invocation_id = invocation_response.json()["id"]
-            return CwlWorkflowRun(self.dataset_populator, history_id, workflow_id, invocation_id)
+            return CwlWorkflowRun(self.dataset_populator, self.workflow_populator, history_id, workflow_id, invocation_id)
 
     def get_conformance_test(self, version, doc):
         conformance_tests = yaml.load(open(os.path.join(CWL_TOOL_DIRECTORY, str(version), "conformance_tests.yaml"), "r"))
@@ -263,8 +292,9 @@ class CwlPopulator( object ):
     def run_conformance_test(self, version, doc):
         test = self.get_conformance_test(version, doc)
         tool = os.path.join(CWL_TOOL_DIRECTORY, test["tool"])
+        tool_or_workflow = self.guess_artifact_type(tool)
         job = os.path.join(CWL_TOOL_DIRECTORY, test["job"])
-        run = self.run_workflow_job(tool, job)
+        run = self.run_workflow_job(tool, job, tool_or_workflow=tool_or_workflow)
         assert run.history_id
         expected_outputs = test["output"]
         try:
@@ -275,18 +305,33 @@ class CwlPopulator( object ):
             self.dataset_populator._summarize_history_errors(run.history_id)
             raise
 
-    def run_workflow_job(self, workflow_path, job_path, history_id=None):
+    def guess_artifact_type(self, path):
+        # TODO: handle IDs within files and use galaxy-lib functionality for this.
+        tool_or_workflow = "workflow"
+        try:
+            with open(path, "r") as f:
+                artifact = yaml.load(f)
+
+            tool_or_workflow = "tool" if artifact["class"] != "Workflow" else "workflow"
+
+        except Exception:
+            print("Failed to guess artifact type for [%s] - assuming worklfow" % path)
+        return tool_or_workflow
+
+    def run_workflow_job(self, workflow_path, job_path, history_id=None, tool_or_workflow="workflow"):
         if history_id is None:
             history_id = self.dataset_populator.new_history()
-        workflow_path = os.path.join(CWL_TOOL_DIRECTORY, workflow_path)
-        job_path = os.path.join(CWL_TOOL_DIRECTORY, job_path)
+        if not os.path.isabs(workflow_path):
+            workflow_path = os.path.join(CWL_TOOL_DIRECTORY, workflow_path)
+        if not os.path.isabs(job_path):
+            job_path = os.path.join(CWL_TOOL_DIRECTORY, job_path)
         run_object = self.run_cwl_artifact(
             workflow_path,
             job_path,
             history_id=history_id,
-            tool_or_workflow="workflow",
+            tool_or_workflow=tool_or_workflow,
         )
-        self.workflow_populator.wait_for_invocation_and_jobs(history_id, run_object.workflow_id, run_object.invocation_id)
+        run_object.wait()
         return run_object
 
 

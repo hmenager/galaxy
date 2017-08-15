@@ -31,7 +31,10 @@ class CwlToolSource(ToolSource):
             if self._source_path is not None:
                 self._tool_proxy = tool_proxy(self._source_path, strict_cwl_validation=self._strict_cwl_validation)
             else:
-                self._tool_proxy = tool_proxy_from_persistent_representation(self._source_object, strict_cwl_validation=self._strict_cwl_validation)
+                if "pickle" not in self._source_object:
+                    self._tool_proxy = tool_proxy(tool_object=self._source_object, strict_cwl_validation=self._strict_cwl_validation)
+                else:
+                    self._tool_proxy = tool_proxy_from_persistent_representation(self._source_object, strict_cwl_validation=self._strict_cwl_validation)
         return self._tool_proxy
 
     def parse_tool_type(self):

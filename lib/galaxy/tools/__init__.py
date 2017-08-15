@@ -284,7 +284,12 @@ class ToolBox( BaseGalaxyToolBox ):
         )
         kwds["dynamic"] = True
         tool = self._create_tool_from_source( tool_source, **kwds )
-        tool.tool_hash = dynamic_tool.tool_hash
+        if dynamic_tool.tool_hash:
+            tool.tool_hash = dynamic_tool.tool_hash
+        else:
+            from galaxy.tools.hash import build_tool_hash
+            tool.tool_hash = build_tool_hash(tool._cwl_tool_proxy.to_persistent_representation())
+            log.info(">>>\n\n\n\n tool_hash is %s" % tool.tool_hash)
         if not tool.id:
             tool.id = dynamic_tool.tool_id
         if not tool.name:
