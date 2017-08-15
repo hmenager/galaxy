@@ -25,7 +25,7 @@ TEST_TEMPLATE = string.Template('''
 
 ${cwl_test_def}
         """
-        self.run_conformance_test("""${version}""", """${doc}""")
+        self.cwl_populator.run_conformance_test("""${version}""", """${doc}""")
 ''')
 
 

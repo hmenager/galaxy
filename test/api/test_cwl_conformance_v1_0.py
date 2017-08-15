@@ -27,7 +27,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
               - example_human_Illumina.pe_2.fastq
             tool: v1.0/bwa-mem-tool.cwl
         """
-        self.run_conformance_test("""v1.0""", """General test of command line generation""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """General test of command line generation""")
 
     def test_conformance_v1_0_1(self):
         """Test nested prefixes with arrays
@@ -47,7 +47,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
               - example_human_Illumina.pe_2.fastq
             tool: v1.0/binding-test.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test nested prefixes with arrays""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test nested prefixes with arrays""")
 
     def test_conformance_v1_0_2(self):
         """Test nested command line bindings
@@ -83,7 +83,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
               - '10'
             tool: v1.0/tmap-tool.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test nested command line bindings""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test nested command line bindings""")
 
     def test_conformance_v1_0_3(self):
         """Test command line with optional input (missing)
@@ -97,7 +97,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
               - hello.txt
             tool: v1.0/cat1-testcli.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test command line with optional input (missing)""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test command line with optional input (missing)""")
 
     def test_conformance_v1_0_4(self):
         """Test command line with optional input (provided)
@@ -112,7 +112,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
               - hello.txt
             tool: v1.0/cat1-testcli.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test command line with optional input (provided)""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test command line with optional input (provided)""")
 
     def test_conformance_v1_0_5(self):
         """Test InitialWorkDirRequirement ExpressionEngineRequirement.engineConfig feature
@@ -128,7 +128,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
                 size: 22
             tool: v1.0/template-tool.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test InitialWorkDirRequirement ExpressionEngineRequirement.engineConfig feature""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test InitialWorkDirRequirement ExpressionEngineRequirement.engineConfig feature""")
 
     def test_conformance_v1_0_6(self):
         """Test command execution in Docker with stdout redirection
@@ -144,7 +144,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
                 size: 13
             tool: v1.0/cat3-tool.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test command execution in Docker with stdout redirection""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test command execution in Docker with stdout redirection""")
 
     def test_conformance_v1_0_7(self):
         """Test command execution in Docker with simplified syntax stdout redirection
@@ -160,7 +160,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
                 size: 13
             tool: v1.0/cat3-tool-shortcut.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test command execution in Docker with simplified syntax stdout redirection""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test command execution in Docker with simplified syntax stdout redirection""")
 
     def test_conformance_v1_0_8(self):
         """Test command execution in Docker with stdout redirection
@@ -176,7 +176,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
                 size: 13
             tool: v1.0/cat3-tool-mediumcut.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test command execution in Docker with stdout redirection""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test command execution in Docker with stdout redirection""")
 
     def test_conformance_v1_0_9(self):
         """Test command line with stderr redirection
@@ -192,7 +192,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
                 size: 4
             tool: v1.0/stderr.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test command line with stderr redirection""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test command line with stderr redirection""")
 
     def test_conformance_v1_0_10(self):
         """Test command line with stderr redirection, brief syntax
@@ -208,7 +208,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
                 size: 4
             tool: v1.0/stderr-shortcut.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test command line with stderr redirection, brief syntax""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test command line with stderr redirection, brief syntax""")
 
     def test_conformance_v1_0_11(self):
         """Test command line with stderr redirection, named brief syntax
@@ -224,7 +224,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
                 size: 4
             tool: v1.0/stderr-mediumcut.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test command line with stderr redirection, named brief syntax""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test command line with stderr redirection, named brief syntax""")
 
     def test_conformance_v1_0_12(self):
         """Test command execution in Docker with stdin and stdout redirection
@@ -240,7 +240,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
                 size: 13
             tool: v1.0/cat4-tool.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test command execution in Docker with stdin and stdout redirection""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test command execution in Docker with stdin and stdout redirection""")
 
     def test_conformance_v1_0_13(self):
         """Test default usage of Any in expressions.
@@ -252,7 +252,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
               output: 1
             tool: v1.0/null-expression1-tool.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test default usage of Any in expressions.""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test default usage of Any in expressions.""")
 
     def test_conformance_v1_0_14(self):
         """Test explicitly passing null to Any type inputs with default values.
@@ -264,7 +264,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
               output: 1
             tool: v1.0/null-expression1-tool.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test explicitly passing null to Any type inputs with default values.""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test explicitly passing null to Any type inputs with default values.""")
 
     def test_conformance_v1_0_15(self):
         """Testing the string 'null' does not trip up an Any with a default value.
@@ -276,7 +276,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
               output: 2
             tool: v1.0/null-expression1-tool.cwl
         """
-        self.run_conformance_test("""v1.0""", """Testing the string 'null' does not trip up an Any with a default value.""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Testing the string 'null' does not trip up an Any with a default value.""")
 
     def test_conformance_v1_0_16(self):
         """Testing the string 'null' does not trip up an Any without a default value.
@@ -288,7 +288,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
               output: 2
             tool: v1.0/null-expression2-tool.cwl
         """
-        self.run_conformance_test("""v1.0""", """Testing the string 'null' does not trip up an Any without a default value.""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Testing the string 'null' does not trip up an Any without a default value.""")
 
     def test_conformance_v1_0_17(self):
         """Test command execution in with stdin and stdout redirection
@@ -304,7 +304,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
                 size: 3
             tool: v1.0/wc-tool.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test command execution in with stdin and stdout redirection""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test command execution in with stdin and stdout redirection""")
 
     def test_conformance_v1_0_18(self):
         """Test ExpressionTool with Docker-based expression engine
@@ -316,7 +316,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
               output: 42
             tool: v1.0/parseInt-tool.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test ExpressionTool with Docker-based expression engine""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test ExpressionTool with Docker-based expression engine""")
 
     def test_conformance_v1_0_19(self):
         """Test outputEval to transform output
@@ -328,7 +328,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
               output: 16
             tool: v1.0/wc2-tool.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test outputEval to transform output""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test outputEval to transform output""")
 
     def test_conformance_v1_0_20(self):
         """Test two step workflow with imported tools
@@ -340,7 +340,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
               count_output: 16
             tool: v1.0/count-lines1-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test two step workflow with imported tools""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test two step workflow with imported tools""")
 
     def test_conformance_v1_0_21(self):
         """Test two step workflow with inline tools
@@ -352,7 +352,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
               count_output: 16
             tool: v1.0/count-lines2-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test two step workflow with inline tools""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test two step workflow with inline tools""")
 
     def test_conformance_v1_0_22(self):
         """Test single step workflow with Scatter step
@@ -366,7 +366,7 @@ class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
               - 1
             tool: v1.0/count-lines3-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test single step workflow with Scatter step""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test single step workflow with Scatter step""")
 
     def test_conformance_v1_0_23(self):
         """Test single step workflow with Scatter step and two data links connected to
@@ -382,7 +382,7 @@ same input, default merge behavior
               - 1
             tool: v1.0/count-lines4-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test single step workflow with Scatter step and two data links connected to
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test single step workflow with Scatter step and two data links connected to
 same input, default merge behavior
 """)
 
@@ -400,7 +400,7 @@ same input, nested merge behavior
               - 2
             tool: v1.0/count-lines6-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test single step workflow with Scatter step and two data links connected to
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test single step workflow with Scatter step and two data links connected to
 same input, nested merge behavior
 """)
 
@@ -416,7 +416,7 @@ same input, flattened merge behavior
               count_output: 34
             tool: v1.0/count-lines7-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test single step workflow with Scatter step and two data links connected to
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test single step workflow with Scatter step and two data links connected to
 same input, flattened merge behavior
 """)
 
@@ -430,7 +430,7 @@ same input, flattened merge behavior
               count_output: 1
             tool: v1.0/count-lines5-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test workflow with default value for input parameter (missing)""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test workflow with default value for input parameter (missing)""")
 
     def test_conformance_v1_0_27(self):
         """Test workflow with default value for input parameter (provided)
@@ -442,7 +442,7 @@ same input, flattened merge behavior
               count_output: 16
             tool: v1.0/count-lines5-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test workflow with default value for input parameter (provided)""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test workflow with default value for input parameter (provided)""")
 
     def test_conformance_v1_0_28(self):
         """Test EnvVarRequirement
@@ -458,7 +458,7 @@ same input, flattened merge behavior
                 size: 15
             tool: v1.0/env-tool1.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test EnvVarRequirement""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test EnvVarRequirement""")
 
     def test_conformance_v1_0_29(self):
         """Test workflow scatter with single scatter parameter
@@ -474,7 +474,7 @@ same input, flattened merge behavior
               - foo four
             tool: v1.0/scatter-wf1.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test workflow scatter with single scatter parameter""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test workflow scatter with single scatter parameter""")
 
     def test_conformance_v1_0_30(self):
         """Test workflow scatter with two scatter parameters and nested_crossproduct join method
@@ -490,7 +490,7 @@ same input, flattened merge behavior
                 - foo two four
             tool: v1.0/scatter-wf2.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters and nested_crossproduct join method""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters and nested_crossproduct join method""")
 
     def test_conformance_v1_0_31(self):
         """Test workflow scatter with two scatter parameters and flat_crossproduct join method
@@ -506,7 +506,7 @@ same input, flattened merge behavior
               - foo two four
             tool: v1.0/scatter-wf3.cwl#main
         """
-        self.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters and flat_crossproduct join method""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters and flat_crossproduct join method""")
 
     def test_conformance_v1_0_32(self):
         """Test workflow scatter with two scatter parameters and dotproduct join method
@@ -520,7 +520,7 @@ same input, flattened merge behavior
               - foo two four
             tool: v1.0/scatter-wf4.cwl#main
         """
-        self.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters and dotproduct join method""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters and dotproduct join method""")
 
     def test_conformance_v1_0_33(self):
         """Test workflow scatter with single empty list parameter
@@ -532,7 +532,7 @@ same input, flattened merge behavior
               out: []
             tool: v1.0/scatter-wf1.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test workflow scatter with single empty list parameter""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test workflow scatter with single empty list parameter""")
 
     def test_conformance_v1_0_34(self):
         """Test workflow scatter with two scatter parameters and nested_crossproduct join method with second list empty
@@ -546,7 +546,7 @@ same input, flattened merge behavior
               - []
             tool: v1.0/scatter-wf2.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters and nested_crossproduct join method with second list empty""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters and nested_crossproduct join method with second list empty""")
 
     def test_conformance_v1_0_35(self):
         """Test workflow scatter with two scatter parameters and nested_crossproduct join method with first list empty
@@ -558,7 +558,7 @@ same input, flattened merge behavior
               out: []
             tool: v1.0/scatter-wf3.cwl#main
         """
-        self.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters and nested_crossproduct join method with first list empty""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters and nested_crossproduct join method with first list empty""")
 
     def test_conformance_v1_0_36(self):
         """Test workflow scatter with two scatter parameters, one of which is empty and flat_crossproduct join method
@@ -570,7 +570,7 @@ same input, flattened merge behavior
               out: []
             tool: v1.0/scatter-wf3.cwl#main
         """
-        self.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters, one of which is empty and flat_crossproduct join method""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters, one of which is empty and flat_crossproduct join method""")
 
     def test_conformance_v1_0_37(self):
         """Test workflow scatter with two empty scatter parameters and dotproduct join method
@@ -582,7 +582,7 @@ same input, flattened merge behavior
               out: []
             tool: v1.0/scatter-wf4.cwl#main
         """
-        self.run_conformance_test("""v1.0""", """Test workflow scatter with two empty scatter parameters and dotproduct join method""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test workflow scatter with two empty scatter parameters and dotproduct join method""")
 
     def test_conformance_v1_0_38(self):
         """Test Any type input parameter
@@ -596,7 +596,7 @@ same input, flattened merge behavior
                 '
             tool: v1.0/echo-tool.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test Any type input parameter""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test Any type input parameter""")
 
     def test_conformance_v1_0_39(self):
         """Test nested workflow
@@ -608,7 +608,7 @@ same input, flattened merge behavior
               count_output: 16
             tool: v1.0/count-lines8-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test nested workflow""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test nested workflow""")
 
     def test_conformance_v1_0_40(self):
         """Test requirement priority
@@ -624,7 +624,7 @@ same input, flattened merge behavior
                 size: 15
             tool: v1.0/env-wf1.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test requirement priority""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test requirement priority""")
 
     def test_conformance_v1_0_41(self):
         """Test requirements override hints
@@ -640,7 +640,7 @@ same input, flattened merge behavior
                 size: 9
             tool: v1.0/env-wf2.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test requirements override hints""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test requirements override hints""")
 
     def test_conformance_v1_0_42(self):
         """Test requirements on workflow steps
@@ -656,7 +656,7 @@ same input, flattened merge behavior
                 size: 9
             tool: v1.0/env-wf3.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test requirements on workflow steps""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test requirements on workflow steps""")
 
     def test_conformance_v1_0_43(self):
         """Test default value on step input parameter
@@ -668,7 +668,7 @@ same input, flattened merge behavior
               count_output: 16
             tool: v1.0/count-lines9-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test default value on step input parameter""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test default value on step input parameter""")
 
     def test_conformance_v1_0_44(self):
         """Test use default value on step input parameter with empty source
@@ -680,7 +680,7 @@ same input, flattened merge behavior
               count_output: 16
             tool: v1.0/count-lines11-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test use default value on step input parameter with empty source""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test use default value on step input parameter with empty source""")
 
     def test_conformance_v1_0_45(self):
         """Test use default value on step input parameter with null source
@@ -692,7 +692,7 @@ same input, flattened merge behavior
               count_output: 16
             tool: v1.0/count-lines11-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test use default value on step input parameter with null source""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test use default value on step input parameter with null source""")
 
     def test_conformance_v1_0_46(self):
         """Test default value on step input parameter overridden by provided source
@@ -704,7 +704,7 @@ same input, flattened merge behavior
               count_output: 1
             tool: v1.0/count-lines11-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test default value on step input parameter overridden by provided source""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test default value on step input parameter overridden by provided source""")
 
     def test_conformance_v1_0_47(self):
         """Test simple workflow
@@ -720,7 +720,7 @@ same input, flattened merge behavior
                 size: 1111
             tool: v1.0/revsort.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test simple workflow""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test simple workflow""")
 
     def test_conformance_v1_0_48(self):
         """Test unknown hints are ignored.
@@ -736,7 +736,7 @@ same input, flattened merge behavior
                 size: 13
             tool: v1.0/cat5-tool.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test unknown hints are ignored.""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test unknown hints are ignored.""")
 
     def test_conformance_v1_0_49(self):
         """Test InitialWorkDirRequirement linking input files and capturing secondaryFiles
@@ -780,7 +780,7 @@ on input and output.
                 size: 142
             tool: v1.0/search.cwl#main
         """
-        self.run_conformance_test("""v1.0""", """Test InitialWorkDirRequirement linking input files and capturing secondaryFiles
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test InitialWorkDirRequirement linking input files and capturing secondaryFiles
 on input and output.
 """)
 
@@ -799,7 +799,7 @@ on input and output.
                 size: 1111
             tool: v1.0/rename.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test InitialWorkDirRequirement with expression in filename.
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test InitialWorkDirRequirement with expression in filename.
 """)
 
     def test_conformance_v1_0_51(self):
@@ -813,7 +813,7 @@ on input and output.
               output: 16
             tool: v1.0/wc4-tool.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test inline expressions
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test inline expressions
 """)
 
     def test_conformance_v1_0_52(self):
@@ -831,7 +831,7 @@ on input and output.
                 size: 12
             tool: v1.0/schemadef-tool.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test SchemaDefRequirement definition used in tool parameter
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test SchemaDefRequirement definition used in tool parameter
 """)
 
     def test_conformance_v1_0_53(self):
@@ -849,7 +849,7 @@ on input and output.
                 size: 12
             tool: v1.0/schemadef-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test SchemaDefRequirement definition used in workflow parameter
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test SchemaDefRequirement definition used in workflow parameter
 """)
 
     def test_conformance_v1_0_54(self):
@@ -923,7 +923,7 @@ on input and output.
               t9: 2
             tool: v1.0/params.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test parameter evaluation, no support for JS expressions
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test parameter evaluation, no support for JS expressions
 """)
 
     def test_conformance_v1_0_55(self):
@@ -997,7 +997,7 @@ on input and output.
               t9: 2
             tool: v1.0/params2.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test parameter evaluation, with support for JS expressions
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test parameter evaluation, with support for JS expressions
 """)
 
     def test_conformance_v1_0_56(self):
@@ -1009,7 +1009,7 @@ on input and output.
             output: {}
             tool: v1.0/metadata.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test metadata""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test metadata""")
 
     def test_conformance_v1_0_57(self):
         """Test simple format checking.
@@ -1027,7 +1027,7 @@ on input and output.
                 size: 1111
             tool: v1.0/formattest.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test simple format checking.
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test simple format checking.
 """)
 
     def test_conformance_v1_0_58(self):
@@ -1046,7 +1046,7 @@ on input and output.
                 size: 12010
             tool: v1.0/formattest2.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test format checking against ontology using subclassOf.
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test format checking against ontology using subclassOf.
 """)
 
     def test_conformance_v1_0_59(self):
@@ -1065,7 +1065,7 @@ on input and output.
                 size: 12010
             tool: v1.0/formattest3.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test format checking against ontology using equivalentClass.
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test format checking against ontology using equivalentClass.
 """)
 
     def test_conformance_v1_0_60(self):
@@ -1084,7 +1084,7 @@ on input and output.
                 size: 13
             tool: v1.0/optional-output.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test optional output file and optional secondaryFile on output.
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test optional output file and optional secondaryFile on output.
 """)
 
     def test_conformance_v1_0_61(self):
@@ -1097,7 +1097,7 @@ on input and output.
               count_output: 16
             tool: v1.0/step-valuefrom-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test valueFrom on workflow step.""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test valueFrom on workflow step.""")
 
     def test_conformance_v1_0_62(self):
         """Test valueFrom on workflow step with multiple sources
@@ -1111,7 +1111,7 @@ on input and output.
                 '
             tool: v1.0/step-valuefrom2-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test valueFrom on workflow step with multiple sources""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test valueFrom on workflow step with multiple sources""")
 
     def test_conformance_v1_0_63(self):
         """Test valueFrom on workflow step referencing other inputs
@@ -1125,7 +1125,7 @@ on input and output.
                 '
             tool: v1.0/step-valuefrom3-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test valueFrom on workflow step referencing other inputs""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test valueFrom on workflow step referencing other inputs""")
 
     def test_conformance_v1_0_64(self):
         """Test record type output binding.
@@ -1147,7 +1147,7 @@ on input and output.
                   size: 1111
             tool: v1.0/record-output.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test record type output binding.""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test record type output binding.""")
 
     def test_conformance_v1_0_65(self):
         """Test support for reading cwl.output.json when running in a Docker container
@@ -1165,7 +1165,7 @@ and just 'path' is provided.
                 size: 4
             tool: v1.0/test-cwl-out.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test support for reading cwl.output.json when running in a Docker container
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test support for reading cwl.output.json when running in a Docker container
 and just 'path' is provided.
 """)
 
@@ -1185,7 +1185,7 @@ and just 'location' is provided.
                 size: 4
             tool: v1.0/test-cwl-out2.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test support for reading cwl.output.json when running in a Docker container
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test support for reading cwl.output.json when running in a Docker container
 and just 'location' is provided.
 """)
 
@@ -1211,7 +1211,7 @@ and just 'location' is provided.
                 size: 0
             tool: v1.0/glob-expr-list.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test support for returning multiple glob patterns from expression""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test support for returning multiple glob patterns from expression""")
 
     def test_conformance_v1_0_68(self):
         """Test workflow scatter with single scatter parameter and valueFrom on step input
@@ -1227,7 +1227,7 @@ and just 'location' is provided.
               - foo one four
             tool: v1.0/scatter-valuefrom-wf1.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test workflow scatter with single scatter parameter and valueFrom on step input""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test workflow scatter with single scatter parameter and valueFrom on step input""")
 
     def test_conformance_v1_0_69(self):
         """Test workflow scatter with two scatter parameters and nested_crossproduct join method and valueFrom on step input
@@ -1243,7 +1243,7 @@ and just 'location' is provided.
                 - foo one two four
             tool: v1.0/scatter-valuefrom-wf2.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters and nested_crossproduct join method and valueFrom on step input""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters and nested_crossproduct join method and valueFrom on step input""")
 
     def test_conformance_v1_0_70(self):
         """Test workflow scatter with two scatter parameters and flat_crossproduct join method and valueFrom on step input
@@ -1259,7 +1259,7 @@ and just 'location' is provided.
               - foo one two four
             tool: v1.0/scatter-valuefrom-wf3.cwl#main
         """
-        self.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters and flat_crossproduct join method and valueFrom on step input""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters and flat_crossproduct join method and valueFrom on step input""")
 
     def test_conformance_v1_0_71(self):
         """Test workflow scatter with two scatter parameters and dotproduct join method and valueFrom on step input
@@ -1273,7 +1273,7 @@ and just 'location' is provided.
               - foo one two four
             tool: v1.0/scatter-valuefrom-wf4.cwl#main
         """
-        self.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters and dotproduct join method and valueFrom on step input""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test workflow scatter with two scatter parameters and dotproduct join method and valueFrom on step input""")
 
     def test_conformance_v1_0_72(self):
         """Test workflow scatter with single scatter parameter and valueFrom on step input
@@ -1289,7 +1289,7 @@ and just 'location' is provided.
               - foo four four
             tool: v1.0/scatter-valuefrom-wf5.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test workflow scatter with single scatter parameter and valueFrom on step input""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test workflow scatter with single scatter parameter and valueFrom on step input""")
 
     def test_conformance_v1_0_73(self):
         """Test workflow two input files with same name.
@@ -1305,7 +1305,7 @@ and just 'location' is provided.
                 size: 25
             tool: v1.0/conflict-wf.cwl#collision
         """
-        self.run_conformance_test("""v1.0""", """Test workflow two input files with same name.""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test workflow two input files with same name.""")
 
     def test_conformance_v1_0_74(self):
         """Test directory input with parameter reference
@@ -1321,7 +1321,7 @@ and just 'location' is provided.
                 size: 20
             tool: v1.0/dir.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test directory input with parameter reference""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test directory input with parameter reference""")
 
     def test_conformance_v1_0_75(self):
         """Test directory input in Docker
@@ -1337,7 +1337,7 @@ and just 'location' is provided.
                 size: 20
             tool: v1.0/dir2.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test directory input in Docker""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test directory input in Docker""")
 
     def test_conformance_v1_0_76(self):
         """Test directory input in Docker
@@ -1359,7 +1359,7 @@ and just 'location' is provided.
                   size: 24
             tool: v1.0/dir3.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test directory input in Docker""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test directory input in Docker""")
 
     def test_conformance_v1_0_77(self):
         """Test directories in secondaryFiles
@@ -1375,7 +1375,7 @@ and just 'location' is provided.
                 size: 20
             tool: v1.0/dir4.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test directories in secondaryFiles""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test directories in secondaryFiles""")
 
     def test_conformance_v1_0_78(self):
         """Test dynamic initial work dir
@@ -1391,7 +1391,7 @@ and just 'location' is provided.
                 size: 33
             tool: v1.0/dir5.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test dynamic initial work dir""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test dynamic initial work dir""")
 
     def test_conformance_v1_0_79(self):
         """Test writable staged files.
@@ -1407,7 +1407,7 @@ and just 'location' is provided.
                 size: 1111
             tool: v1.0/stagefile.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test writable staged files.""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test writable staged files.""")
 
     def test_conformance_v1_0_80(self):
         """Test file literal as input
@@ -1423,7 +1423,7 @@ and just 'location' is provided.
                 size: 18
             tool: v1.0/cat3-tool.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test file literal as input""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test file literal as input""")
 
     def test_conformance_v1_0_81(self):
         """Test expression in InitialWorkDir listing
@@ -1439,7 +1439,7 @@ and just 'location' is provided.
                 size: 184
             tool: examples/linkfile.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test expression in InitialWorkDir listing""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test expression in InitialWorkDir listing""")
 
     def test_conformance_v1_0_82(self):
         """Test nameroot/nameext expression in arguments, stdout
@@ -1455,7 +1455,7 @@ and just 'location' is provided.
                 size: 21
             tool: v1.0/nameroot.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test nameroot/nameext expression in arguments, stdout""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test nameroot/nameext expression in arguments, stdout""")
 
     def test_conformance_v1_0_83(self):
         """Test directory input with inputBinding
@@ -1471,7 +1471,7 @@ and just 'location' is provided.
                 size: 20
             tool: v1.0/dir6.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test directory input with inputBinding""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test directory input with inputBinding""")
 
     def test_conformance_v1_0_84(self):
         """Test command line generation of array-of-arrays
@@ -1487,7 +1487,7 @@ and just 'location' is provided.
                 size: 2
             tool: v1.0/nested-array.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test command line generation of array-of-arrays""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test command line generation of array-of-arrays""")
 
     def test_conformance_v1_0_85(self):
         """Test $HOME and $TMPDIR are set correctly
@@ -1498,7 +1498,7 @@ and just 'location' is provided.
             output: {}
             tool: v1.0/envvar.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test $HOME and $TMPDIR are set correctly""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test $HOME and $TMPDIR are set correctly""")
 
     def test_conformance_v1_0_86(self):
         """Test $HOME and $TMPDIR are set correctly in Docker
@@ -1509,7 +1509,7 @@ and just 'location' is provided.
             output: {}
             tool: v1.0/envvar2.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test $HOME and $TMPDIR are set correctly in Docker""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test $HOME and $TMPDIR are set correctly in Docker""")
 
     def test_conformance_v1_0_87(self):
         """Test that expressionLib requirement of individual tool step overrides expressionLib of workflow.
@@ -1525,7 +1525,7 @@ and just 'location' is provided.
                 size: 2
             tool: v1.0/js-expr-req-wf.cwl#wf
         """
-        self.run_conformance_test("""v1.0""", """Test that expressionLib requirement of individual tool step overrides expressionLib of workflow.""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test that expressionLib requirement of individual tool step overrides expressionLib of workflow.""")
 
     def test_conformance_v1_0_88(self):
         """Test output of InitialWorkDir
@@ -1546,7 +1546,7 @@ and just 'location' is provided.
                 size: 12010
             tool: v1.0/initialworkdirrequirement-docker-out.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test output of InitialWorkDir""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test output of InitialWorkDir""")
 
     def test_conformance_v1_0_89(self):
         """Test embedded subworkflow
@@ -1558,7 +1558,7 @@ and just 'location' is provided.
               count_output: 16
             tool: v1.0/count-lines10-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test embedded subworkflow""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test embedded subworkflow""")
 
     def test_conformance_v1_0_90(self):
         """Test secondaryFiles on array of files.
@@ -1574,7 +1574,7 @@ and just 'location' is provided.
                 size: 386
             tool: v1.0/docker-array-secondaryfiles.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test secondaryFiles on array of files.""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test secondaryFiles on array of files.""")
 
     def test_conformance_v1_0_91(self):
         """Test directory literal output created by ExpressionTool
@@ -1597,7 +1597,7 @@ and just 'location' is provided.
                 location: a_directory
             tool: v1.0/dir7.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test directory literal output created by ExpressionTool""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test directory literal output created by ExpressionTool""")
 
     def test_conformance_v1_0_92(self):
         """Test file literal output created by ExpressionTool
@@ -1613,7 +1613,7 @@ and just 'location' is provided.
                 size: 19
             tool: v1.0/file-literal-ex.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test file literal output created by ExpressionTool""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test file literal output created by ExpressionTool""")
 
     def test_conformance_v1_0_93(self):
         """Test dockerOutputDirectory
@@ -1629,7 +1629,7 @@ and just 'location' is provided.
                 size: 0
             tool: v1.0/docker-output-dir.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test dockerOutputDirectory""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test dockerOutputDirectory""")
 
     def test_conformance_v1_0_94(self):
         """Test hints with $import
@@ -1645,7 +1645,7 @@ and just 'location' is provided.
                 size: 15
             tool: v1.0/imported-hint.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test hints with $import""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test hints with $import""")
 
     def test_conformance_v1_0_95(self):
         """Test warning instead of error when default path is not found
@@ -1656,7 +1656,7 @@ and just 'location' is provided.
             output: {}
             tool: v1.0/default_path.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test warning instead of error when default path is not found""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test warning instead of error when default path is not found""")
 
     def test_conformance_v1_0_96(self):
         """Test InlineJavascriptRequirement with multiple expressions in the same tool
@@ -1683,7 +1683,7 @@ and just 'location' is provided.
               - '1'
             tool: v1.0/inline-js.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test InlineJavascriptRequirement with multiple expressions in the same tool""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test InlineJavascriptRequirement with multiple expressions in the same tool""")
 
     def test_conformance_v1_0_97(self):
         """Test if a writable input directory is recursivly copied and writable
@@ -1729,7 +1729,7 @@ and just 'location' is provided.
                 size: 0
             tool: v1.0/recursive-input-directory.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test if a writable input directory is recursivly copied and writable""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test if a writable input directory is recursivly copied and writable""")
 
     def test_conformance_v1_0_98(self):
         """Test that missing parameters are null (not undefined) in expression
@@ -1743,7 +1743,7 @@ and just 'location' is provided.
                 '
             tool: v1.0/null-defined.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test that missing parameters are null (not undefined) in expression""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test that missing parameters are null (not undefined) in expression""")
 
     def test_conformance_v1_0_99(self):
         """Test that provided parameter is not null in expression
@@ -1757,7 +1757,7 @@ and just 'location' is provided.
                 '
             tool: v1.0/null-defined.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test that provided parameter is not null in expression""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test that provided parameter is not null in expression""")
 
     def test_conformance_v1_0_100(self):
         """Test compound workflow document
@@ -1773,7 +1773,7 @@ and just 'location' is provided.
                 size: 1111
             tool: v1.0/revsort-packed.cwl#main
         """
-        self.run_conformance_test("""v1.0""", """Test compound workflow document""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test compound workflow document""")
 
     def test_conformance_v1_0_101(self):
         """Test that nameroot and nameext are generated from basename at execution time by the runner
@@ -1796,7 +1796,7 @@ and just 'location' is provided.
                 size: 10
             tool: v1.0/basename-fields-test.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test that nameroot and nameext are generated from basename at execution time by the runner""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test that nameroot and nameext are generated from basename at execution time by the runner""")
 
     def test_conformance_v1_0_102(self):
         """Test that file path in $(inputs) for initialworkdir is in $(outdir).
@@ -1807,7 +1807,7 @@ and just 'location' is provided.
             output: {}
             tool: v1.0/initialwork-path.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test that file path in $(inputs) for initialworkdir is in $(outdir).""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test that file path in $(inputs) for initialworkdir is in $(outdir).""")
 
     def test_conformance_v1_0_103(self):
         """Test single step workflow with Scatter step and two data links connected to
@@ -1821,7 +1821,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               count_output: 34
             tool: v1.0/count-lines12-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test single step workflow with Scatter step and two data links connected to
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test single step workflow with Scatter step and two data links connected to
 same input, flattened merge behavior. Workflow inputs are set as list
 """)
 
@@ -1835,7 +1835,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               result: 12
             tool: v1.0/sum-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test step input with multiple sources with multiple types""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test step input with multiple sources with multiple types""")
 
     def test_conformance_v1_0_105(self):
         """Test that shell directives are not interpreted.
@@ -1856,7 +1856,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
                 size: 9
             tool: v1.0/shellchar.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test that shell directives are not interpreted.""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test that shell directives are not interpreted.""")
 
     def test_conformance_v1_0_106(self):
         """Test that shell directives are quoted.
@@ -1877,7 +1877,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
                 size: 9
             tool: v1.0/shellchar2.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test that shell directives are quoted.""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test that shell directives are quoted.""")
 
     def test_conformance_v1_0_107(self):
         """Test empty writable dir with InitialWorkDirRequirement
@@ -1898,7 +1898,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
                 location: emptyWritableDir
             tool: v1.0/writable-dir.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test empty writable dir with InitialWorkDirRequirement""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test empty writable dir with InitialWorkDirRequirement""")
 
     def test_conformance_v1_0_108(self):
         """Test simple scatter over an embedded subworkflow
@@ -1912,7 +1912,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               - 1
             tool: v1.0/count-lines13-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test simple scatter over an embedded subworkflow""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test simple scatter over an embedded subworkflow""")
 
     def test_conformance_v1_0_109(self):
         """Test simple multiple input scatter over an embedded subworkflow
@@ -1926,7 +1926,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               - 1
             tool: v1.0/count-lines14-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test simple multiple input scatter over an embedded subworkflow""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test simple multiple input scatter over an embedded subworkflow""")
 
     def test_conformance_v1_0_110(self):
         """Test twice nested subworkflow
@@ -1938,7 +1938,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               count_output: 16
             tool: v1.0/count-lines15-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test twice nested subworkflow""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test twice nested subworkflow""")
 
     def test_conformance_v1_0_111(self):
         """Test subworkflow of mixed depth with tool first
@@ -1950,7 +1950,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               count_output: 16
             tool: v1.0/count-lines16-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test subworkflow of mixed depth with tool first""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test subworkflow of mixed depth with tool first""")
 
     def test_conformance_v1_0_112(self):
         """Test subworkflow of mixed depth with tool after
@@ -1962,7 +1962,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               count_output: 16
             tool: v1.0/count-lines17-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test subworkflow of mixed depth with tool after""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test subworkflow of mixed depth with tool after""")
 
     def test_conformance_v1_0_113(self):
         """Test record type inputs to and outputs from workflows.
@@ -1984,7 +1984,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
                   size: 1111
             tool: v1.0/record-output-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test record type inputs to and outputs from workflows.""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test record type inputs to and outputs from workflows.""")
 
     def test_conformance_v1_0_114(self):
         """Test integer workflow input and outputs
@@ -1996,7 +1996,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               o: 10
             tool: v1.0/io-int-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test integer workflow input and outputs""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test integer workflow input and outputs""")
 
     def test_conformance_v1_0_115(self):
         """Test optional integer workflow inputs (specified)
@@ -2008,7 +2008,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               o: 10
             tool: v1.0/io-int-optional-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test optional integer workflow inputs (specified)""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test optional integer workflow inputs (specified)""")
 
     def test_conformance_v1_0_116(self):
         """Test optional integer workflow inputs (unspecified)
@@ -2020,7 +2020,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               o: 4
             tool: v1.0/io-int-optional-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test optional integer workflow inputs (unspecified)""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test optional integer workflow inputs (unspecified)""")
 
     def test_conformance_v1_0_117(self):
         """Test default integer workflow inputs (specified)
@@ -2032,7 +2032,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               o: 10
             tool: v1.0/io-int-default-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test default integer workflow inputs (specified)""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test default integer workflow inputs (specified)""")
 
     def test_conformance_v1_0_118(self):
         """Test default integer workflow inputs (unspecified)
@@ -2044,7 +2044,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               o: 8
             tool: v1.0/io-int-default-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test default integer workflow inputs (unspecified)""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test default integer workflow inputs (unspecified)""")
 
     def test_conformance_v1_0_119(self):
         """Test File input with default unspecified to workflow
@@ -2062,7 +2062,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
                 size: 1111
             tool: v1.0/io-file-default-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test File input with default unspecified to workflow""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test File input with default unspecified to workflow""")
 
     def test_conformance_v1_0_120(self):
         """Test File input with default specified to workflow
@@ -2080,7 +2080,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
                 size: 13
             tool: v1.0/io-file-default-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test File input with default specified to workflow""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test File input with default specified to workflow""")
 
     def test_conformance_v1_0_121(self):
         """Test Any parameter with integer input to a tool
@@ -2092,7 +2092,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               t1: 7
             tool: v1.0/io-any-1.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test Any parameter with integer input to a tool""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with integer input to a tool""")
 
     def test_conformance_v1_0_122(self):
         """Test Any parameter with string input to a tool
@@ -2104,7 +2104,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               t1: '7'
             tool: v1.0/io-any-1.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test Any parameter with string input to a tool""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with string input to a tool""")
 
     def test_conformance_v1_0_123(self):
         """Test Any parameter with file input to a tool
@@ -2116,7 +2116,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               t1: File
             tool: v1.0/io-any-1.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test Any parameter with file input to a tool""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with file input to a tool""")
 
     def test_conformance_v1_0_124(self):
         """Test Any parameter with array input to a tool
@@ -2130,7 +2130,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               - moocow
             tool: v1.0/io-any-1.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test Any parameter with array input to a tool""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with array input to a tool""")
 
     def test_conformance_v1_0_125(self):
         """Test Any parameter with record input to a tool
@@ -2144,7 +2144,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
                 moo: 1
             tool: v1.0/io-any-1.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test Any parameter with record input to a tool""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with record input to a tool""")
 
     def test_conformance_v1_0_126(self):
         """Test Any parameter with integer input to a workflow
@@ -2156,7 +2156,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               t1: 7
             tool: v1.0/io-any-wf-1.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test Any parameter with integer input to a workflow""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with integer input to a workflow""")
 
     def test_conformance_v1_0_127(self):
         """Test Any parameter with string input to a workflow
@@ -2168,7 +2168,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               t1: '7'
             tool: v1.0/io-any-wf-1.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test Any parameter with string input to a workflow""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with string input to a workflow""")
 
     def test_conformance_v1_0_128(self):
         """Test Any parameter with file input to a workflow
@@ -2180,7 +2180,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               t1: File
             tool: v1.0/io-any-wf-1.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test Any parameter with file input to a workflow""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with file input to a workflow""")
 
     def test_conformance_v1_0_129(self):
         """Test Any parameter with array input to a workflow
@@ -2194,7 +2194,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               - moocow
             tool: v1.0/io-any-wf-1.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test Any parameter with array input to a workflow""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with array input to a workflow""")
 
     def test_conformance_v1_0_130(self):
         """Test Any parameter with record input to a tool
@@ -2208,7 +2208,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
                 moo: 1
             tool: v1.0/io-any-wf-1.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test Any parameter with record input to a tool""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with record input to a tool""")
 
     def test_conformance_v1_0_131(self):
         """Test union type input to workflow with default unspecified
@@ -2220,7 +2220,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               o: the default value
             tool: v1.0/io-union-input-default-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test union type input to workflow with default unspecified""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test union type input to workflow with default unspecified""")
 
     def test_conformance_v1_0_132(self):
         """Test union type input to workflow with default specified as file
@@ -2232,7 +2232,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
               o: File
             tool: v1.0/io-union-input-default-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test union type input to workflow with default specified as file""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test union type input to workflow with default specified as file""")
 
     def test_conformance_v1_0_133(self):
         """Test valueFrom on workflow step from literal (string).
@@ -2241,12 +2241,12 @@ same input, flattened merge behavior. Workflow inputs are set as list
 
             job: v1.0/empty.json
             output:
-              o: 'moocow
+              val: 'moocow
             
                 '
             tool: v1.0/step-valuefrom4-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test valueFrom on workflow step from literal (string).""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test valueFrom on workflow step from literal (string).""")
 
     def test_conformance_v1_0_134(self):
         """Test valueFrom on workflow step using basename.
@@ -2263,5 +2263,44 @@ same input, flattened merge behavior. Workflow inputs are set as list
                 '
             tool: v1.0/step-valuefrom5-wf.cwl
         """
-        self.run_conformance_test("""v1.0""", """Test valueFrom on workflow step using basename.""")
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test valueFrom on workflow step using basename.""")
+
+    def test_conformance_v1_0_135(self):
+        """Test output arrays in a workflow (with ints).
+
+        Generated from::
+
+            job: v1.0/output-arrays-int-job.json
+            output:
+              o: 12
+            tool: v1.0/output-arrays-int-wf.cwl
+        """
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test output arrays in a workflow (with ints).""")
+
+    def test_conformance_v1_0_136(self):
+        """Test output arrays in a workflow (with Files).
+
+        Generated from::
+
+            job: v1.0/output-arrays-file-job.json
+            output:
+              o:
+              - basename: moo
+                checksum: sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709
+                class: File
+                location: Any
+                nameext: ''
+                nameroot: moo
+                size: 0
+              - basename: cow
+                checksum: sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709
+                class: File
+                http://commonwl.org/cwltool#generation: 0
+                location: Any
+                nameext: ''
+                nameroot: cow
+                size: 0
+            tool: v1.0/output-arrays-file-wf.cwl
+        """
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test output arrays in a workflow (with Files).""")
 

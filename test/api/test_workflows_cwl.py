@@ -3,14 +3,12 @@ import json
 import os
 import re
 
-import yaml
-import cwltest
-
-from galaxy.util import galaxy_root_path
+from base.populators import (
+    CWL_TOOL_DIRECTORY,
+    CwlPopulator,
+)
 
 from .test_workflows import BaseWorkflowsApiTestCase
-
-cwl_tool_directory = os.path.join(galaxy_root_path, "test", "functional", "tools", "cwl_tools")
 
 
 class BaseCwlWorklfowTestCase(BaseWorkflowsApiTestCase):
@@ -20,39 +18,9 @@ class BaseCwlWorklfowTestCase(BaseWorkflowsApiTestCase):
     def setUp(self):
         super(BaseCwlWorklfowTestCase, self).setUp()
         self.history_id = self.dataset_populator.new_history()
-
-    def get_conformance_test(self, version, doc):
-        conformance_tests = yaml.load(open(os.path.join(cwl_tool_directory, str(version), "conformance_tests.yaml"), "r"))
-        for test in conformance_tests:
-            if test.get("doc") == doc:
-                return test
-        raise Exception("No such doc found %s" % doc)
-
-    def run_conformance_test(self, version, doc):
-        test = self.get_conformance_test(version, doc)
-        tool = os.path.join(cwl_tool_directory, test["tool"])
-        job = os.path.join(cwl_tool_directory, test["job"])
-        run = self._run_workflow_job(tool, job)
-        expected_outputs = test["output"]
-        try:
-            for key, value in expected_outputs.items():
-                actual_output = run.get_output_as_object(key)
-                cwltest.compare(value, actual_output)
-        except Exception:
-            self.dataset_populator._summarize_history_errors(self.history_id)
-            raise
-
-    def _run_workflow_job(self, workflow_path, job_path):
-        workflow_path = os.path.join(cwl_tool_directory, workflow_path)
-        job_path = os.path.join(cwl_tool_directory, job_path)
-        run_object = self.dataset_populator.run_cwl_artifact(
-            workflow_path,
-            job_path,
-            history_id=self.history_id,
-            tool_or_workflow="workflow",
+        self.cwl_populator = CwlPopulator(
+            self.dataset_populator, self.workflow_populator
         )
-        self.wait_for_invocation_and_jobs(self.history_id, run_object.workflow_id, run_object.invocation_id)
-        return run_object
 
 
 class CwlWorkflowsTestCase(BaseCwlWorklfowTestCase):
@@ -80,7 +48,7 @@ class CwlWorkflowsTestCase(BaseCwlWorklfowTestCase):
         self._run_count_lines_wf("v1.0/count-lines1-wf.cwl")
 
     def test_count_line1_v1_json(self):
-        run_object = self._run_workflow_job("v1.0/count-lines1-wf.cwl", "v1.0/wc-job.json")
+        run_object = self.cwl_populator.run_workflow_job("v1.0/count-lines1-wf.cwl", "v1.0/wc-job.json", history_id=self.history_id)
         self._check_countlines_wf(run_object.invocation_id, run_object.workflow_id, expected_count=16)
 
     def test_count_line1_draft3(self):
@@ -125,11 +93,11 @@ class CwlWorkflowsTestCase(BaseCwlWorklfowTestCase):
         self.dataset_populator.get_history_collection_details(self.history_id, hid=5)
 
     def test_count_lines4_json(self):
-        self._run_workflow_job("v1.0/count-lines4-wf.cwl", "v1.0/count-lines4-job.json")
+        self.cwl_populator.run_workflow_job("v1.0/count-lines4-wf.cwl", "v1.0/count-lines4-job.json", history_id=self.history_id)
         self.dataset_populator.get_history_collection_details(self.history_id, hid=5)
 
     def test_scatter_wf1_v1(self):
-        self._run_workflow_job("v1.0/scatter-wf1.cwl", "v1.0/scatter-job1.json")
+        self.cwl_populator.run_workflow_job("v1.0/scatter-wf1.cwl", "v1.0/scatter-job1.json", history_id=self.history_id)
         self.dataset_populator.get_history_collection_details(self.history_id, hid=5)
 
     def test_record_io(self):
@@ -194,7 +162,7 @@ class CwlWorkflowsTestCase(BaseCwlWorklfowTestCase):
         return invocation_id
 
     def _load_workflow(self, rel_path):
-        path = os.path.join(cwl_tool_directory, rel_path)
+        path = os.path.join(CWL_TOOL_DIRECTORY, rel_path)
         data = dict(
             from_path=path,
         )

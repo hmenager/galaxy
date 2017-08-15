@@ -1012,6 +1012,8 @@ class ToolModule( WorkflowModule ):
 
         def to_cwl(value):
             if isinstance(value, model.HistoryDatasetAssociation):
+                # I think the following two checks are needed but they may
+                # not be needed.
                 if not value.dataset.in_ready_state:
                     why = "dataset [%s] is needed for valueFrom expression and is non-ready" % value.id
                     raise DelayedWorkflowEvaluation(why=why)
@@ -1031,7 +1033,6 @@ class ToolModule( WorkflowModule ):
                     set_basename_and_derived_properties(
                         properties, value.dataset.cwl_filename or value.name
                     )
-                    log.info("setting properties to %s" % properties)
                     return properties
 
             elif hasattr(value, "collection"):

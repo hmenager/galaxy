@@ -5,6 +5,7 @@ import time
 
 from operator import itemgetter
 
+import cwltest
 import requests
 import yaml
 
@@ -19,11 +20,16 @@ from galaxy.tools.cwl.util import (
     tool_response_to_output,
 )
 
+from galaxy.util import galaxy_root_path
+
 from base import api_asserts
 from base.workflows_format_2 import (
     convert_and_import_workflow,
     ImporterGalaxyInterface,
 )
+
+
+CWL_TOOL_DIRECTORY = os.path.join(galaxy_root_path, "test", "functional", "tools", "cwl_tools")
 
 # Simple workflow that takes an input and call cat wrapper on it.
 workflow_str = resource_string( __name__, "data/test_workflow_1.ga" )
@@ -149,6 +155,141 @@ class CwlWorkflowRun( CwlRun ):
         return invocation_to_output(invocation, self.history_id, output_name)
 
 
+class CwlPopulator( object ):
+
+    def __init__(self, dataset_populator, workflow_populator):
+        self.dataset_populator = dataset_populator
+        self.workflow_populator = workflow_populator
+
+    def run_cwl_artifact(
+        self, tool_id, json_path=None, job=None, test_data_directory=None, history_id=None, assert_ok=True, tool_or_workflow="tool",
+    ):
+        if test_data_directory is None and json_path is not None:
+            test_data_directory = os.path.dirname(json_path)
+        if json_path is not None:
+            assert job is None
+            with open( json_path, "r" ) as f:
+                if json_path.endswith(".yml") or json_path.endswith(".yaml"):
+                    job_as_dict = yaml.load( f )
+                else:
+                    job_as_dict = json.load( f )
+        else:
+            job_as_dict = job
+        if history_id is None:
+            history_id = self.dataset_populator.new_history()
+
+        def upload_func(upload_target):
+            if isinstance(upload_target, FileUploadTarget):
+                path = upload_target.path
+                with open( path, "rb" ) as f:
+                    content = f.read()
+                return self.dataset_populator.new_dataset_request(
+                    history_id=history_id,
+                    content=content,
+                    file_type="auto",
+                    name=os.path.basename( path ),
+                ).json()
+            else:
+                content = json.dumps(upload_target.object)
+                return self.dataset_populator.new_dataset_request(
+                    history_id=history_id,
+                    content=content,
+                    file_type="expression.json",
+                ).json()
+
+        def create_collection_func(element_identifiers, collection_type):
+            payload = {
+                "name": "dataset collection",
+                "instance_type": "history",
+                "history_id": history_id,
+                "element_identifiers": json.dumps(element_identifiers),
+                "collection_type": collection_type,
+                "fields": None if collection_type != "record" else "auto",
+            }
+            response = self.dataset_populator._post( "dataset_collections", data=payload )
+            assert response.status_code == 200
+            return response.json()
+
+        job_as_dict, datasets_uploaded = galactic_job_json(
+            job_as_dict,
+            test_data_directory,
+            upload_func,
+            create_collection_func,
+        )
+        if datasets_uploaded:
+            self.dataset_populator.wait_for_history( history_id=history_id, assert_ok=True )
+        if tool_or_workflow == "tool":
+            run_response = self.dataset_populator.run_tool( tool_id, job_as_dict, history_id, inputs_representation="cwl", assert_ok=assert_ok )
+            run_object = CwlToolRun( self.dataset_populator, history_id, run_response )
+            if assert_ok:
+                try:
+                    final_state = self.wait_for_job( run_object.job_id )
+                    assert final_state == "ok"
+                except Exception:
+                    self.dataset_populator._summarize_history_errors( history_id )
+                    raise
+
+            return run_object
+        else:
+            route = "workflows"
+            path = os.path.join(tool_id)
+            data = dict(
+                from_path=path,
+            )
+            upload_response = self.dataset_populator._post(route, data=data)
+            api_asserts.assert_status_code_is(upload_response, 200)
+            workflow = upload_response.json()
+            workflow_id = workflow["id"]
+
+            workflow_request = dict(
+                history="hist_id=%s" % history_id,
+                workflow_id=workflow_id,
+                inputs=json.dumps(job_as_dict),
+                inputs_by="name",
+            )
+            url = "workflows/%s/invocations" % workflow_id
+            invocation_response = self.dataset_populator._post(url, data=workflow_request)
+            api_asserts.assert_status_code_is(invocation_response, 200)
+            invocation_id = invocation_response.json()["id"]
+            return CwlWorkflowRun(self.dataset_populator, history_id, workflow_id, invocation_id)
+
+    def get_conformance_test(self, version, doc):
+        conformance_tests = yaml.load(open(os.path.join(CWL_TOOL_DIRECTORY, str(version), "conformance_tests.yaml"), "r"))
+        for test in conformance_tests:
+            if test.get("doc") == doc:
+                return test
+        raise Exception("No such doc found %s" % doc)
+
+    def run_conformance_test(self, version, doc):
+        test = self.get_conformance_test(version, doc)
+        tool = os.path.join(CWL_TOOL_DIRECTORY, test["tool"])
+        job = os.path.join(CWL_TOOL_DIRECTORY, test["job"])
+        run = self.run_workflow_job(tool, job)
+        assert run.history_id
+        expected_outputs = test["output"]
+        try:
+            for key, value in expected_outputs.items():
+                actual_output = run.get_output_as_object(key)
+                cwltest.compare(value, actual_output)
+        except Exception:
+            self.dataset_populator._summarize_history_errors(run.history_id)
+            raise
+
+    def run_workflow_job(self, workflow_path, job_path, history_id=None):
+        if history_id is None:
+            history_id = self.dataset_populator.new_history()
+        workflow_path = os.path.join(CWL_TOOL_DIRECTORY, workflow_path)
+        job_path = os.path.join(CWL_TOOL_DIRECTORY, job_path)
+        run_object = self.run_cwl_artifact(
+            workflow_path,
+            job_path,
+            history_id=history_id,
+            tool_or_workflow="workflow",
+        )
+        self.workflow_populator.wait_for_invocation_and_jobs(history_id, run_object.workflow_id, run_object.invocation_id)
+        return run_object
+
+
 class BaseDatasetPopulator( object ):
     """ Abstract description of API operations optimized for testing
     Galaxy - implementations must implement _get and _post.
@@ -264,100 +405,6 @@ class BaseDatasetPopulator( object ):
             return tool_response.json()
         else:
             return tool_response
-
-    def run_cwl_artifact(
-        self, tool_id, json_path=None, job=None, test_data_directory=None, history_id=None, assert_ok=True, tool_or_workflow="tool",
-    ):
-        if test_data_directory is None and json_path is not None:
-            test_data_directory = os.path.dirname(json_path)
-        if json_path is not None:
-            assert job is None
-            with open( json_path, "r" ) as f:
-                if json_path.endswith(".yml") or json_path.endswith(".yaml"):
-                    job_as_dict = yaml.load( f )
-                else:
-                    job_as_dict = json.load( f )
-        else:
-            job_as_dict = job
-        if history_id is None:
-            history_id = self.new_history()
-
-        def upload_func(upload_target):
-            if isinstance(upload_target, FileUploadTarget):
-                path = upload_target.path
-                with open( path, "rb" ) as f:
-                    content = f.read()
-                return self.new_dataset_request(
-                    history_id=history_id,
-                    content=content,
-                    file_type="auto",
-                    name=os.path.basename( path ),
-                ).json()
-            else:
-                content = json.dumps(upload_target.object)
-                return self.new_dataset_request(
-                    history_id=history_id,
-                    content=content,
-                    file_type="expression.json",
-                ).json()
-
-        def create_collection_func(element_identifiers, collection_type):
-            payload = {
-                "name": "dataset collection",
-                "instance_type": "history",
-                "history_id": history_id,
-                "element_identifiers": json.dumps(element_identifiers),
-                "collection_type": collection_type,
-                "fields": None if collection_type != "record" else "auto",
-            }
-            response = self._post( "dataset_collections", data=payload )
-            assert response.status_code == 200
-            return response.json()
-
-        job_as_dict, datasets_uploaded = galactic_job_json(
-            job_as_dict,
-            test_data_directory,
-            upload_func,
-            create_collection_func,
-        )
-        if datasets_uploaded:
-            self.wait_for_history( history_id=history_id, assert_ok=True )
-        if tool_or_workflow == "tool":
-            run_response = self.run_tool( tool_id, job_as_dict, history_id, inputs_representation="cwl", assert_ok=assert_ok )
-            run_object = CwlToolRun( self.dataset_populator, history_id, run_response )
-            if assert_ok:
-                try:
-                    final_state = self.wait_for_job( run_object.job_id )
-                    assert final_state == "ok"
-                except Exception:
-                    self._summarize_history_errors( history_id )
-                    raise
-
-            return run_object
-        else:
-            route = "workflows"
-            path = os.path.join(tool_id)
-            data = dict(
-                from_path=path,
-            )
-            upload_response = self._post(route, data=data)
-            api_asserts.assert_status_code_is(upload_response, 200)
-            workflow = upload_response.json()
-            workflow_id = workflow["id"]
-
-            workflow_request = dict(
-                history="hist_id=%s" % history_id,
-                workflow_id=workflow_id,
-                inputs=json.dumps(job_as_dict),
-                inputs_by="name",
-            )
-            url = "workflows/%s/invocations" % workflow_id
-            invocation_response = self._post(url, data=workflow_request)
-            api_asserts.assert_status_code_is(invocation_response, 200)
-            invocation_id = invocation_response.json()["id"]
-            return CwlWorkflowRun(self, history_id, workflow_id, invocation_id)
-
-    run_cwl_tool = run_cwl_artifact
 
     def get_history_dataset_content( self, history_id, wait=True, **kwds ):
         dataset_id = self.__history_content_id( history_id, wait=wait, **kwds )
@@ -486,6 +533,12 @@ class BaseWorkflowPopulator( object ):
         to be complete. """
         self.wait_for_invocation( workflow_id, invocation_id, timeout=timeout )
         self.dataset_populator.wait_for_history( history_id, assert_ok=assert_ok, timeout=timeout )
+
+    def wait_for_invocation_and_jobs( self, history_id, workflow_id, invocation_id, assert_ok=True ):
+        self.wait_for_invocation( workflow_id, invocation_id )
+        time.sleep(.5)
+        self.dataset_populator.wait_for_history( history_id, assert_ok=assert_ok )
+        time.sleep(.5)
 
 
 class WorkflowPopulator( BaseWorkflowPopulator, ImporterGalaxyInterface ):
