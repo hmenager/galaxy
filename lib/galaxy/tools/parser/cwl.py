@@ -129,6 +129,8 @@ class CwlToolSource(ToolSource):
         output_type = output_instance.output_data_type
         if isinstance(output_type, dict) and output_type.get("type") == "record":
             return self._parse_output_record(tool, output_instance)
+        elif isinstance(output_type, dict) and output_type.get("type") == "array":
+            return self._parse_output_array(tool, output_instance)
         else:
             return self._parse_output_data(tool, output_instance)
 
@@ -163,6 +165,18 @@ class CwlToolSource(ToolSource):
             ToolOutputCollectionStructure(
                 collection_type="record",
                 fields=fields,
+            ),
+        )
+        return output_collection
+
+    def _parse_output_array(self, tool, output_instance):
+        name = output_instance.name
+        # TODO: Handle nested arrays and such...
+        fields = output_instance.output_data_type.get("fields")
+        output_collection = ToolOutputCollection(
+            name,
+            ToolOutputCollectionStructure(
+                collection_type="list",
             ),
         )
         return output_collection

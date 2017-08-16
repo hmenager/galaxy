@@ -43,7 +43,9 @@ def output_properties(path=None, content=None, basename=None):
     return properties
 
 
-def galactic_job_json(job, test_data_directory, upload_func, collection_create_func):
+def galactic_job_json(
+    job, test_data_directory, upload_func, collection_create_func, tool_or_workflow="workflow"
+):
     """Adapt a CWL job object to the Galaxy API.
 
     CWL derived tools in Galaxy can consume a job description sort of like
@@ -88,7 +90,11 @@ def galactic_job_json(job, test_data_directory, upload_func, collection_create_f
         if isinstance(value, list):
             return replacement_list(value)
         elif not isinstance(value, dict):
-            return upload_object(value)
+            if tool_or_workflow == "workflow":
+                # All inputs represented as dataset or collection parameters
+                return upload_object(value)
+            else:
+                return value
 
         if is_file:
             return replacement_file(value)

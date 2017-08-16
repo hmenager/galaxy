@@ -233,6 +233,7 @@ class CwlPopulator( object ):
             test_data_directory,
             upload_func,
             create_collection_func,
+            tool_or_workflow=tool_or_workflow,
         )
         if datasets_uploaded:
             self.dataset_populator.wait_for_history( history_id=history_id, assert_ok=True )

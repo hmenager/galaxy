@@ -3988,7 +3988,7 @@ class WorkflowStep( object ):
         copied_step.workflow_outputs = copy_list(self.workflow_outputs, copied_step)
 
     def log_str(self):
-        return "WorkflowStep[index=%d,type=%s]" % (self.order_index, self.type)
+        return "WorkflowStep[index=%d,type=%s,label=%s]" % (self.order_index, self.type, self.label)
 
 
 class WorkflowStepInput( object ):
