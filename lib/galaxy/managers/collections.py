@@ -167,10 +167,6 @@ class DatasetCollectionManager(object):
         # objects from identifiers.
         if elements is None:
             elements = self._element_identifiers_to_elements(trans, collection_type_description, element_identifiers)
-        else:
-            if has_subcollections:
-                # Nested collection - recursively create collections as needed.
-                self.__recursively_create_collections_for_elements(trans, elements)
         # else if elements is set, it better be an ordered dict!
 
         if elements is not self.ELEMENTS_UNINITIALIZED:
