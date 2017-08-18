@@ -193,7 +193,10 @@ class CwlToolSource(ToolSource):
         ))
 
     def parse_profile(self):
-        return "16.04"
+        return "17.09"
+
+    def parse_provided_metadata_style(self):
+        return "default"
 
 
 class CwlPageSource(PageSource):

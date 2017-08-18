@@ -25,22 +25,19 @@ def handle_outputs(job_directory=None):
     tool_working_directory = os.path.join(job_directory, "working")
     outputs = job_proxy.collect_outputs(tool_working_directory)
 
-    def handle_output_location(output, target_path):
+    # Build galaxy.json file.
+    provided_metadata = {}
+
+    def handle_output_location(output, output_name, target_path):
         output_path = ref_resolver.uri_file_path(output["location"])
-        with open("galaxy.json", "a+") as f:
-            if output["class"] != "File":
-                json.dump({
-                    "dataset_id": job_proxy.output_id(output_name),
-                    "type": "dataset",
-                    "ext": "expression.json",
-                }, f)
-            else:
-                json.dump({
-                    "dataset_id": job_proxy.output_id(output_name),
-                    "type": "dataset",
-                    "cwl_filename": output["basename"],
-                }, f)
-            f.write("\n")
+        if output["class"] != "File":
+            provided_metadata[output_name] = {
+                "ext": "expression.json",
+            }
+        else:
+            provided_metadata[output_name] = {
+                "cwl_filename": output["basename"]
+            }
 
         shutil.move(output_path, target_path)
         for secondary_file in output.get("secondaryFiles", []):
@@ -60,18 +57,21 @@ def handle_outputs(job_directory=None):
     for output_name, output in outputs.items():
         if isinstance(output, dict) and "location" in output:
             target_path = job_proxy.output_path(output_name)
-            handle_output_location(output, target_path)
+            handle_output_location(output, output_name, target_path)
         elif isinstance(output, dict):
             prefix = "%s|__part__|" % output_name
             for record_key, record_value in output.items():
                 record_value_output_key = "%s%s" % (prefix, record_key)
                 target_path = job_proxy.output_path(record_value_output_key)
 
-                handle_output_location(record_value, target_path)
+                handle_output_location(record_value, output_name, target_path)
         else:
             target_path = job_proxy.output_path(output_name)
             with open(target_path, "w") as f:
                 f.write(json.dumps(output))
+
+    with open("galaxy.json", "w") as f:
+        json.dump(provided_metadata, f)
 
 
 __all__ = (
