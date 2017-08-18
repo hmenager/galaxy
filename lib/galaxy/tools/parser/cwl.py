@@ -8,6 +8,7 @@ from .interface import PageSource
 from .interface import PagesSource
 from .interface import ToolSource
 from .interface import ToolStdioExitCode
+from .output_collection_def import dataset_collector_descriptions_from_list
 from .output_actions import ToolOutputActionGroup
 from .output_objects import ToolOutputCollection
 from .output_objects import ToolOutputCollectionStructure
@@ -172,11 +173,14 @@ class CwlToolSource(ToolSource):
     def _parse_output_array(self, tool, output_instance):
         name = output_instance.name
         # TODO: Handle nested arrays and such...
-        fields = output_instance.output_data_type.get("fields")
+        dataset_collector_descriptions = dataset_collector_descriptions_from_list(
+            [{"from_provided_metadata": True}],
+        )
         output_collection = ToolOutputCollection(
             name,
             ToolOutputCollectionStructure(
                 collection_type="list",
+                dataset_collector_descriptions=dataset_collector_descriptions,
             ),
         )
         return output_collection

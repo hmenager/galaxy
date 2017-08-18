@@ -28,19 +28,15 @@ def handle_outputs(job_directory=None):
     # Build galaxy.json file.
     provided_metadata = {}
 
-    def handle_output_location(output, output_name, target_path):
+    def move_output_file(output, target_path, output_name=None):
+        assert output["class"] == "File"
         output_path = ref_resolver.uri_file_path(output["location"])
-        if output["class"] != "File":
-            provided_metadata[output_name] = {
-                "ext": "expression.json",
-            }
-        else:
-            provided_metadata[output_name] = {
-                "cwl_filename": output["basename"]
-            }
-
         shutil.move(output_path, target_path)
+
         for secondary_file in output.get("secondaryFiles", []):
+            if output_name is None:
+                raise NotImplementedError("secondaryFiles are unimplemented for dynamic list elements")
+
             # TODO: handle nested files...
             secondary_file_path = ref_resolver.uri_file_path(secondary_file["location"])
             assert secondary_file_path.startswith(output_path)
@@ -54,21 +50,49 @@ def handle_outputs(job_directory=None):
                 extra_target,
             )
 
+        return {"cwl_filename": output["basename"]}
+
+    def handle_known_output(output, target_path, output_name):
+        # if output["class"] != "File":
+        #    # This case doesn't seem like it would be reached - why is this here?
+        #    provided_metadata[output_name] = {
+        #        "ext": "expression.json",
+        #    }
+        # else:
+        assert output_name
+        file_metadata = move_output_file(output, target_path, output_name=output_name)
+        provided_metadata[output_name] = file_metadata
+
     for output_name, output in outputs.items():
         if isinstance(output, dict) and "location" in output:
             target_path = job_proxy.output_path(output_name)
-            handle_output_location(output, output_name, target_path)
+            handle_known_output(output, target_path, )
         elif isinstance(output, dict):
             prefix = "%s|__part__|" % output_name
             for record_key, record_value in output.items():
                 record_value_output_key = "%s%s" % (prefix, record_key)
                 target_path = job_proxy.output_path(record_value_output_key)
 
-                handle_output_location(record_value, output_name, target_path)
+                handle_known_output(record_value, target_path, output_name)
+        elif isinstance(output, list):
+            elements = []
+            for index, el in enumerate(output):
+                if isinstance(el, dict) and el["class"] == "File":
+                    output_path = ref_resolver.uri_file_path(el["location"])
+                    elements.append({"name": str(index), "filename": output_path, "cwl_basename": el["basename"]})
+                else:
+                    target_path = "%s____%s" % (output_name, str(index))
+                    with open(target_path, "w") as f:
+                        f.write(json.dumps(el))
+                    elements.append({"name": str(index), "filename": target_path, "ext": "expression.json"})
+            provided_metadata[output_name] = {"elements": elements}
         else:
             target_path = job_proxy.output_path(output_name)
             with open(target_path, "w") as f:
                 f.write(json.dumps(output))
+            provided_metadata[output_name] = {
+                "ext": "expression.json",
+            }
 
     with open("galaxy.json", "w") as f:
         json.dump(provided_metadata, f)
