@@ -255,7 +255,7 @@ class CwlPopulator(object):
                     final_state = self.dataset_populator.wait_for_job(run_object.job_id)
                     assert final_state == "ok"
                 except Exception:
-                    self.dataset_populator._summarize_history_errors(history_id)
+                    self.dataset_populator._summarize_history(history_id)
                     raise
 
             return run_object
@@ -302,7 +302,7 @@ class CwlPopulator(object):
                 actual_output = run.get_output_as_object(key)
                 cwltest.compare(value, actual_output)
         except Exception:
-            self.dataset_populator._summarize_history_errors(run.history_id)
+            self.dataset_populator._summarize_history(run.history_id)
             raise
 
     def guess_artifact_type(self, path):
