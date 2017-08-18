@@ -305,7 +305,7 @@ class WorkflowsApiTestCase(BaseWorkflowsApiTestCase):
 
     def test_delete(self):
         workflow_id = self.workflow_populator.simple_workflow("test_delete")
-        workflow_name = "test_delete"
+        workflow_name = "test_delete (imported from API)"
         self._assert_user_has_workflow_with_name(workflow_name)
         workflow_url = self._api_url("workflows/%s" % workflow_id, use_key=True)
         delete_response = delete(workflow_url)
@@ -449,7 +449,7 @@ class WorkflowsApiTestCase(BaseWorkflowsApiTestCase):
         with self._different_user():
             other_import_response = self.__import_workflow(workflow_id)
             self._assert_status_code_is(other_import_response, 200)
-            self._assert_user_has_workflow_with_name("imported: test_import_published_deprecated")
+            self._assert_user_has_workflow_with_name("imported: test_import_published_deprecated (imported from API)")
 
     def test_import_annotations(self):
         workflow_id = self.workflow_populator.simple_workflow("test_import_annotations", publish=True)
@@ -492,12 +492,12 @@ class WorkflowsApiTestCase(BaseWorkflowsApiTestCase):
         with self._different_user():
             other_import_response = self.__import_workflow(workflow_id, deprecated_route=True)
             self._assert_status_code_is(other_import_response, 200)
-            self._assert_user_has_workflow_with_name("imported: test_import_published")
+            self._assert_user_has_workflow_with_name("imported: test_import_published (imported from API)")
 
     def test_export(self):
         uploaded_workflow_id = self.workflow_populator.simple_workflow("test_for_export")
         downloaded_workflow = self._download_workflow(uploaded_workflow_id)
-        assert downloaded_workflow["name"] == "test_for_export"
+        assert downloaded_workflow["name"] == "test_for_export (imported from API)"
         assert len(downloaded_workflow["steps"]) == 3
         first_input = downloaded_workflow["steps"]["0"]["inputs"][0]
         assert first_input["name"] == "WorkflowInput1"
@@ -962,6 +962,77 @@ test_data:
         # Give some time for workflow to get scheduled before scanning the history.
         time.sleep(5)
         self.dataset_populator.wait_for_history(history_id, assert_ok=True)
+
+    def test_workflow_output_dataset(self):
+        history_id = self.dataset_populator.new_history()
+        summary = self._run_jobs("""
+class: GalaxyWorkflow
+inputs:
+  - id: input1
+outputs:
+  - id: wf_output_1
+    source: first_cat#out_file1
+steps:
+  - tool_id: cat1
+    label: first_cat
+    state:
+      input1:
+        $link: input1
+
+test_data:
+  input1: "hello world"
+""", history_id=history_id)
+        workflow_id = summary.workflow_id
+        invocation_id = summary.invocation_id
+        invocation_response = self._get("workflows/%s/invocations/%s" % (workflow_id, invocation_id))
+        self._assert_status_code_is(invocation_response, 200)
+        invocation = invocation_response.json()
+        self._assert_has_keys(invocation , "id", "outputs", "output_collections")
+        assert len(invocation["output_collections"]) == 0
+        assert len(invocation["outputs"]) == 1
+        output_content = self.dataset_populator.get_history_dataset_content(history_id, dataset_id=invocation["outputs"]["wf_output_1"]["id"])
+        assert "hello world" == output_content.strip()
+
+    def test_workflow_output_dataset_collection(self):
+        history_id = self.dataset_populator.new_history()
+        summary = self._run_jobs("""
+class: GalaxyWorkflow
+inputs:
+  - id: input1
+    type: data_collection_input
+    collection_type: list
+outputs:
+  - id: wf_output_1
+    source: first_cat#out_file1
+steps:
+  - tool_id: cat
+    label: first_cat
+    state:
+      input1:
+        $link: input1
+test_data:
+  input1:
+    type: list
+    name: the_dataset_list
+    elements:
+      - identifier: el1
+        value: 1.fastq
+        type: File
+""", history_id=history_id)
+        workflow_id = summary.workflow_id
+        invocation_id = summary.invocation_id
+        invocation_response = self._get("workflows/%s/invocations/%s" % (workflow_id, invocation_id))
+        self._assert_status_code_is(invocation_response, 200)
+        invocation = invocation_response.json()
+        self._assert_has_keys(invocation , "id", "outputs", "output_collections")
+        assert len(invocation["output_collections"]) == 1
+        assert len(invocation["outputs"]) == 0
+        output_content = self.dataset_populator.get_history_collection_details(history_id, content_id=invocation["output_collections"]["wf_output_1"]["id"])
+        self._assert_has_keys(output_content , "id", "elements")
+        elements = output_content["elements"]
+        assert len(elements) == 1
+        elements0 = elements[0]
+        assert elements0["element_identifier"] == "el1"
 
     @skip_without_tool("cat")
     def test_workflow_pause(self):

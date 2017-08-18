@@ -813,7 +813,7 @@ class ToolModule(WorkflowModule):
             execution_state.inputs = make_dict_copy(execution_state.inputs)
 
             expected_replacement_keys = set(step.input_connections_by_name.keys())
-            found_replacement_keys = set()
+            found_replacement_keys = set([])
 
             # Connect up
             def callback(input, prefixed_name, **kwargs):
@@ -870,6 +870,7 @@ class ToolModule(WorkflowModule):
         else:
             step_outputs = dict(execution_tracker.output_datasets)
             step_outputs.update(execution_tracker.output_collections)
+
         progress.set_step_outputs(step, step_outputs)
         jobs = execution_tracker.successful_jobs
         for job in jobs:
