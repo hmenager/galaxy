@@ -176,14 +176,13 @@ GalaxyOutput = namedtuple("GalaxyOutput", ["history_id", "history_content_type",
 
 
 def tool_response_to_output(tool_response, history_id, output_id):
-
     for output in tool_response["outputs"]:
         if output["output_name"] == output_id:
             return GalaxyOutput(history_id, "dataset", output["id"])
 
     for output_collection in tool_response["output_collections"]:
-        if output["output_name"] == output_id:
-            return GalaxyOutput(history_id, "dataset", output["id"])
+        if output_collection["output_name"] == output_id:
+            return GalaxyOutput(history_id, "dataset_collection", output_collection["id"])
 
     raise Exception("Failed to find output with label [%s]" % output_id)
 
