@@ -362,6 +362,19 @@ class BaseDatasetPopulator(object):
             self._summarize_history(history_id)
             raise
 
+    def wait_for_history_jobs(self, history_id, assert_ok=False, timeout=DEFAULT_TIMEOUT):
+        query_params = {"history_id": history_id}
+
+        def has_active_jobs():
+            jobs_response = self._get("jobs", query_params)
+            assert jobs_response.status_code == 200
+            active_jobs = [j for j in jobs_response.json() if j["state"] in ["new", "upload", "waiting", "queued", "running"]]
+            return active_jobs == 0
+
+        wait_on(has_active_jobs, "active jobs", timeout=timeout)
+        if assert_ok:
+            return self.wait_for_history(history_id, assert_ok=True, timeout=timeout)
+
     def wait_for_job(self, job_id, assert_ok=False, timeout=DEFAULT_TIMEOUT):
         return wait_on_state(lambda: self.get_job_details(job_id), assert_ok=assert_ok, timeout=timeout)
 
@@ -515,8 +528,8 @@ class DatasetPopulator(BaseDatasetPopulator):
 
         return self.galaxy_interactor.post(route, data, files=files, admin=admin)
 
-    def _get(self, route):
-        return self.galaxy_interactor.get(route)
+    def _get(self, route, data={}):
+        return self.galaxy_interactor.get(route, data=data)
 
     def _summarize_history(self, history_id):
         self.galaxy_interactor._summarize_history(history_id)
@@ -581,9 +594,9 @@ class BaseWorkflowPopulator(object):
 
     def wait_for_invocation_and_jobs(self, history_id, workflow_id, invocation_id, assert_ok=True):
         self.wait_for_invocation(workflow_id, invocation_id)
-        time.sleep(.5)
-        self.dataset_populator.wait_for_history(history_id, assert_ok=assert_ok)
-        time.sleep(.5)
+        time.sleep(.05)
+        self.dataset_populator.wait_for_history_jobs(history_id, assert_ok=assert_ok)
+        time.sleep(.05)
 
 
 class WorkflowPopulator(BaseWorkflowPopulator, ImporterGalaxyInterface):
@@ -595,8 +608,8 @@ class WorkflowPopulator(BaseWorkflowPopulator, ImporterGalaxyInterface):
     def _post(self, route, data={}, admin=False):
         return self.galaxy_interactor.post(route, data, admin=admin)
 
-    def _get(self, route):
-        return self.galaxy_interactor.get(route)
+    def _get(self, route, data={}):
+        return self.galaxy_interactor.get(route, data=data)
 
     # Required for ImporterGalaxyInterface interface - so we can recurisvely import
     # nested workflows.
@@ -832,8 +845,8 @@ def wait_on_state(state_func, skip_states=["running", "queued", "new", "ready"],
 class GiPostGetMixin:
     """Mixin for adapting Galaxy testing populators helpers to bioblend."""
 
-    def _get(self, route):
-        return self._gi.make_get_request(self.__url(route))
+    def _get(self, route, data={}):
+        return self._gi.make_get_request(self.__url(route), data)
 
     def _post(self, route, data={}):
         data = data.copy()
