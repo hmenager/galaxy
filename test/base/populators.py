@@ -41,6 +41,8 @@ workflow_random_x2_str = resource_string(__name__, "data/test_workflow_2.ga")
 
 DEFAULT_TIMEOUT = 60  # Secs to wait for state to turn ok
 
+UPLOAD_VIA = "path"  # or content, but content breaks down for empty uploads, tar, etc...
+
 
 def skip_without_tool(tool_id):
     """ Decorate an API test method as requiring a specific tool,
@@ -202,20 +204,30 @@ class CwlPopulator(object):
         def upload_func(upload_target):
             if isinstance(upload_target, FileUploadTarget):
                 path = upload_target.path
-                with open(path, "rb") as f:
-                    content = f.read()
+
+                if UPLOAD_VIA == "path":
+                    content = "file://%s" % path
+                else:
+                    with open(path, "rb") as f:
+                        content = f.read()
+
                 return self.dataset_populator.new_dataset_request(
                     history_id=history_id,
-                    content=content,
+                    content='content',
                     file_type="auto",
                     name=os.path.basename(path),
                 ).json()
             elif isinstance(upload_target, DirectoryUploadTarget):
                 path = upload_target.tar_path
-                # TODO: basename?
-                payload = self.dataset_populator.upload_payload(
-                    history_id, 'file://%s' % path, ext="tar",
-                )
+
+                if UPLOAD_VIA == "path":
+                    # TODO: basename?
+                    payload = self.dataset_populator.upload_payload(
+                        history_id, 'file://%s' % path, ext="tar",
+                    )
+                else:
+                    raise NotImplementedError()
+
                 create_response = self.dataset_populator._post("tools", data=payload)
                 assert create_response.status_code == 200
 
