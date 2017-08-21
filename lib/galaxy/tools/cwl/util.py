@@ -19,7 +19,7 @@ def set_basename_and_derived_properties(properties, basename):
     return properties
 
 
-def output_properties(path=None, content=None, basename=None):
+def output_properties(path=None, content=None, basename=None, pseduo_location=False):
     checksum = hashlib.sha1()
     properties = {
         "class": "File",
@@ -42,6 +42,8 @@ def output_properties(path=None, content=None, basename=None):
     properties["checksum"] = "sha1$%s" % checksum.hexdigest()
     properties["size"] = filesize
     set_basename_and_derived_properties(properties, basename)
+    if pseduo_location:
+        properties["location"] = properties["basename"]
     return properties
 
 
@@ -238,7 +240,9 @@ def invocation_to_output(invocation, history_id, output_id):
     return galaxy_output
 
 
-def output_to_cwl_json(galaxy_output, get_metadata, get_dataset):
+def output_to_cwl_json(
+    galaxy_output, get_metadata, get_dataset, get_extra_files, pseduo_location=False,
+):
     """Convert objects in a Galaxy history into a CWL object.
 
     Useful in running conformance tests and implementing the cwl-runner
@@ -264,7 +268,23 @@ def output_to_cwl_json(galaxy_output, get_metadata, get_dataset):
                 with open(dataset_dict["path"]) as f:
                     return json.load(f)
         else:
-            return output_properties(**dataset_dict)
+            properties = output_properties(pseduo_location=pseduo_location, **dataset_dict)
+            basename = properties["basename"]
+            extra_files = get_extra_files(output_metadata)
+            for extra_file in extra_files:
+                if extra_file["class"] == "File":
+                    path = extra_file["path"]
+                    if path.startswith("__secondary_files__/"):
+                        ec = get_dataset(output_metadata, filename=path)
+                        ec["basename"] = basename + os.path.basename(path)
+                        ec_properties = output_properties(pseduo_location=pseduo_location, **ec)
+                        if "secondaryFiles" not in properties:
+                            properties["secondaryFiles"] = []
+
+                        properties["secondaryFiles"].append(ec_properties)
+
+            return properties
+
     elif output_metadata["history_content_type"] == "dataset_collection":
         if output_metadata["collection_type"] == "list":
             rval = []

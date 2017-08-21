@@ -106,28 +106,26 @@ class CwlRun(object):
             else:
                 return self.dataset_populator.get_history_collection_details(self.history_id, content_id=content_id)
 
-        def get_dataset(dataset_details):
-            content = self.dataset_populator.get_history_dataset_content(self.history_id, dataset_id=dataset_details["id"])
-            basename = dataset_details.get("cwl_file_name")
-            if not basename:
-                basename = dataset_details.get("name")
-            extra_files = self.dataset_populator.get_history_dataset_extra_files(self.history_id, dataset_id=dataset_details["id"])
-            for extra_file in extra_files:
-                if extra_file["class"] == "File":
-                    ec = self.dataset_populator.get_history_dataset_content(self.history_id, dataset_id=dataset_details["id"], filename=extra_file["path"])
-                    raise Exception("ec content is [%s]" % ec)
+        def get_dataset(dataset_details, filename=None):
+            content = self.dataset_populator.get_history_dataset_content(self.history_id, dataset_id=dataset_details["id"], filename=filename)
+            if filename is None:
+                basename = dataset_details.get("cwl_file_name")
+                if not basename:
+                    basename = dataset_details.get("name")
+            else:
+                basename = os.path.basename(filename)
             return {"content": content, "basename": basename}
+
+        def get_extra_files(dataset_details):
+            return self.dataset_populator.get_history_dataset_extra_files(self.history_id, dataset_id=dataset_details["id"])
 
         output = output_to_cwl_json(
             galaxy_output,
             get_metadata,
             get_dataset,
+            get_extra_files,
+            pseduo_location=True,
         )
-        try:
-            if output["class"] == "File" and "location" not in output:
-                output["location"] = output["basename"]
-        except Exception:
-            pass
 
         return output
 
