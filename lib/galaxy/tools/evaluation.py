@@ -490,20 +490,27 @@ class ToolEvaluator(object):
         command_line = None
         if not command:
             return
-        try:
-            # Substituting parameters into the command
-            command_line = fill_template(command, context=param_dict)
-            cleaned_command_line = []
-            # Remove leading and trailing whitespace from each line for readability.
-            for line in command_line.split('\n'):
-                cleaned_command_line.append(line.strip())
-            command_line = '\n'.join(cleaned_command_line)
-            # Remove newlines from command line, and any leading/trailing white space
-            command_line = command_line.replace("\n", " ").replace("\r", " ").strip()
-        except Exception:
-            # Modify exception message to be more clear
-            # e.args = ( 'Error substituting into command line. Params: %r, Command: %s' % ( param_dict, self.command ), )
-            raise
+
+        # TODO: do not allow normal jobs to set this in this fashion
+        # TODO: this approach replaces specifies a command block as $__cwl_command_state
+        #  and that other approach needs to be unraveled.
+        if "__cwl_command" in param_dict:
+            command_line = param_dict["__cwl_command"]
+        else:
+            try:
+                # Substituting parameters into the command
+                command_line = fill_template(command, context=param_dict)
+                cleaned_command_line = []
+                # Remove leading and trailing whitespace from each line for readability.
+                for line in command_line.split('\n'):
+                    cleaned_command_line.append(line.strip())
+                command_line = '\n'.join(cleaned_command_line)
+                # Remove newlines from command line, and any leading/trailing white space
+                command_line = command_line.replace("\n", " ").replace("\r", " ").strip()
+            except Exception:
+                # Modify exception message to be more clear
+                # e.args = ( 'Error substituting into command line. Params: %r, Command: %s' % ( param_dict, self.command ), )
+                raise
         if interpreter:
             # TODO: path munging for cluster/dataset server relocatability
             executable = command_line.split()[0]
