@@ -5,6 +5,8 @@ and other Galaxy CWL clients (e.g. Planemo)."""
 import hashlib
 import json
 import os
+import tarfile
+import tempfile
 
 from collections import namedtuple
 
@@ -69,6 +71,17 @@ def galactic_job_json(
         dataset_id = dataset["id"]
         return {"src": "hda", "id": dataset_id}
 
+    def upload_tar(file_path):
+        if not os.path.isabs(file_path):
+            file_path = os.path.join(test_data_directory, file_path)
+        _ensure_file_exists(file_path)
+        target = DirectoryUploadTarget(file_path)
+        upload_response = upload_func(target)
+        dataset = upload_response["outputs"][0]
+        datasets.append((dataset, target))
+        dataset_id = dataset["id"]
+        return {"src": "hda", "id": dataset_id}
+
     def upload_object(the_object):
         target = ObjectUploadTarget(the_object)
         upload_response = upload_func(target)
@@ -79,7 +92,9 @@ def galactic_job_json(
 
     def replacement_item(value, force_to_file=False):
         is_dict = isinstance(value, dict)
-        is_file = is_dict and value.get("class", None) == "File"
+        item_class = None if not is_dict else value.get("class", None)
+        is_file = item_class == "File"
+        is_directory = item_class == "Directory"
 
         if force_to_file:
             if is_file:
@@ -98,6 +113,8 @@ def galactic_job_json(
 
         if is_file:
             return replacement_file(value)
+        elif is_directory:
+            return replacement_directory(value)
         else:
             return replacement_record(value)
 
@@ -107,6 +124,21 @@ def galactic_job_json(
             return value
 
         return upload_file(file_path)
+
+    def replacement_directory(value):
+        file_path = value.get("location", None) or value.get("path", None)
+        if file_path is None:
+            return value
+
+        if not os.path.isabs(file_path):
+            file_path = os.path.join(test_data_directory, file_path)
+
+        tmp = tempfile.NamedTemporaryFile(delete=False)
+        tf = tarfile.open(fileobj=tmp, mode='w:')
+        tf.add(file_path, '.')
+        tf.close()
+
+        return upload_tar(tmp.name)
 
     def replacement_list(value):
         collection_element_identifiers = []
@@ -170,6 +202,12 @@ class ObjectUploadTarget(object):
 
     def __init__(self, the_object):
         self.object = the_object
+
+
+class DirectoryUploadTarget(object):
+
+    def __init__(self, tar_path):
+        self.tar_path = tar_path
 
 
 GalaxyOutput = namedtuple("GalaxyOutput", ["history_id", "history_content_type", "history_content_id"])

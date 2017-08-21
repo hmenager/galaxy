@@ -21,6 +21,7 @@ from galaxy.util.odict import odict
 
 from .cwltool_deps import (
     ensure_cwltool_available,
+    pathmapper,
     process,
 )
 from .representation import (
@@ -44,6 +45,7 @@ SUPPORTED_TOOL_REQUIREMENTS = [
     "CreateFileRequirement",
     "DockerRequirement",
     "EnvVarRequirement",
+    "InitialWorkDirRequirement",
     "InlineJavascriptRequirement",
     "ShellCommandRequirement",
     "ScatterFeatureRequirement",
@@ -360,7 +362,7 @@ class JobProxy(object):
                 self._output_callback,
                 basedir=self._job_directory,
                 select_resources=self._select_resources,
-                outdir=os.path.join(self._job_directory, "cwloutput"),
+                outdir=os.path.join(self._job_directory, "working"),
                 tmpdir=os.path.join(self._job_directory, "cwltmp"),
                 stagedir=os.path.join(self._job_directory, "cwlstagedir"),
                 use_container=False,
@@ -471,8 +473,26 @@ class JobProxy(object):
 
     def stage_files(self):
         cwl_job = self.cwl_job()
+
+        def stageFunc(resolved_path, target_path):
+            log.info("resolving %s to %s" % (resolved_path, target_path))
+            try:
+                os.symlink(resolved_path, target_path)
+            except OSError:
+                pass
+
         if hasattr(cwl_job, "pathmapper"):
-            process.stageFiles(self.cwl_job().pathmapper, os.symlink, ignoreWritable=True)
+            process.stageFiles(cwl_job.pathmapper, stageFunc, ignoreWritable=True, symLink=False)
+
+        if hasattr(cwl_job, "generatefiles"):
+            # TODO: Why doesn't cwl_job.generatemapper work?
+            generate_mapper = pathmapper.PathMapper(cwl_job.generatefiles["listing"],
+                                                    os.path.join(self._job_directory, "working"), os.path.join(self._job_directory, "working"), separateDirs=False)
+            # TODO: figure out what inplace_update should be.
+            inplace_update = getattr(cwl_job, "inplace_update")
+            process.stageFiles(generate_mapper, stageFunc, ignoreWritable=inplace_update, symLink=False)
+            from cwltool import job
+            job.relink_initialworkdir(generate_mapper, inplace_update=inplace_update)
         # else: expression tools do not have a path mapper.
 
     @staticmethod

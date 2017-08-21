@@ -14,6 +14,7 @@ from six import StringIO
 
 from galaxy.tools.cwl.util import (
     FileUploadTarget,
+    DirectoryUploadTarget,
     galactic_job_json,
     invocation_to_output,
     output_to_cwl_json,
@@ -110,6 +111,11 @@ class CwlRun(object):
             basename = dataset_details.get("cwl_file_name")
             if not basename:
                 basename = dataset_details.get("name")
+            extra_files = self.dataset_populator.get_history_dataset_extra_files(self.history_id, dataset_id=dataset_details["id"])
+            for extra_file in extra_files:
+                if extra_file["class"] == "File":
+                    ec = self.dataset_populator.get_history_dataset_content(self.history_id, dataset_id=dataset_details["id"], filename=extra_file["path"])
+                    raise Exception("ec content is [%s]" % ec)
             return {"content": content, "basename": basename}
 
         output = output_to_cwl_json(
@@ -206,6 +212,22 @@ class CwlPopulator(object):
                     file_type="auto",
                     name=os.path.basename(path),
                 ).json()
+            elif isinstance(upload_target, DirectoryUploadTarget):
+                path = upload_target.tar_path
+                # TODO: basename?
+                payload = self.dataset_populator.upload_payload(
+                    history_id, 'file://%s' % path, ext="tar",
+                )
+                create_response = self.dataset_populator._post("tools", data=payload)
+                assert create_response.status_code == 200
+
+                convert_response = self.dataset_populator.run_tool(
+                    tool_id="CONVERTER_tar_to_directory",
+                    inputs={"input1": {"src": "hda", "id": create_response.json()["outputs"][0]["id"]}},
+                    history_id=history_id,
+                )
+                assert "outputs" in convert_response, convert_response
+                return convert_response
             else:
                 content = json.dumps(upload_target.object)
                 return self.dataset_populator.new_dataset_request(
@@ -246,9 +268,10 @@ class CwlPopulator(object):
 
                     dynamic_tool = self.dataset_populator.create_tool(representation)
                     tool_id = dynamic_tool["tool_id"]
+                    tool_hash = dynamic_tool["tool_hash"]
                     assert tool_id, dynamic_tool
 
-            run_response = self.dataset_populator.run_tool(tool_id, job_as_dict, history_id, inputs_representation="cwl", assert_ok=assert_ok)
+            run_response = self.dataset_populator.run_tool(None, job_as_dict, history_id, inputs_representation="cwl", assert_ok=assert_ok, tool_hash=tool_hash)
             run_object = CwlToolRun(self.dataset_populator, history_id, run_response)
             if assert_ok:
                 try:
@@ -464,9 +487,12 @@ class BaseDatasetPopulator(object):
         else:
             return tool_response
 
-    def get_history_dataset_content(self, history_id, wait=True, **kwds):
+    def get_history_dataset_content(self, history_id, wait=True, filename=None, **kwds):
         dataset_id = self.__history_content_id(history_id, wait=wait, **kwds)
-        display_response = self.__get_contents_request(history_id, "/%s/display" % dataset_id)
+        data = {}
+        if filename:
+            data["filename"] = filename
+        display_response = self.__get_contents_request(history_id, "/%s/display" % dataset_id, data=data)
         assert display_response.status_code == 200, display_response.content
         return display_response.content
 
@@ -474,6 +500,12 @@ class BaseDatasetPopulator(object):
         dataset_id = self.__history_content_id(history_id, **kwds)
         details_response = self.__get_contents_request(history_id, "/datasets/%s" % dataset_id)
         assert details_response.status_code == 200
+        return details_response.json()
+
+    def get_history_dataset_extra_files(self, history_id, **kwds):
+        dataset_id = self.__history_content_id(history_id, **kwds)
+        details_response = self.__get_contents_request(history_id, "/%s/extra_files" % dataset_id)
+        assert details_response.status_code == 200, details_response.content
         return details_response.json()
 
     def get_history_collection_details(self, history_id, **kwds):
@@ -509,11 +541,11 @@ class BaseDatasetPopulator(object):
                 history_content_id = history_contents[-1]["id"]
         return history_content_id
 
-    def __get_contents_request(self, history_id, suffix=""):
+    def __get_contents_request(self, history_id, suffix="", data={}):
         url = "histories/%s/contents" % history_id
         if suffix:
             url = "%s%s" % (url, suffix)
-        return self._get(url)
+        return self._get(url, data=data)
 
 
 class DatasetPopulator(BaseDatasetPopulator):

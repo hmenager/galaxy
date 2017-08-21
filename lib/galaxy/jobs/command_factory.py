@@ -112,7 +112,13 @@ def build_command(
 
         # Remove the working directory incase this is for instance a SLURM re-submission.
         # xref https://github.com/galaxyproject/galaxy/issues/3289
-        commands_builder.prepend_command("rm -rf working; mkdir -p working; cd working")
+        if not job_wrapper.is_cwl_job:
+            commands_builder.prepend_command("rm -rf working; mkdir -p working; cd working")
+        else:
+            # Can't do the rm -rf working for CWL jobs since we may have staged outputs
+            # into that directory. This does mean CWL is incompatible with job manager triggered
+            # retries - what can we do with that information?
+            commands_builder.prepend_command("cd working")
 
     if include_work_dir_outputs:
         __handle_work_dir_outputs(commands_builder, job_wrapper, runner, remote_command_params)

@@ -8,7 +8,7 @@ from .base import ModelManager
 
 from galaxy import exceptions
 from galaxy import model
-from galaxy.tools.cwl import tool_proxy
+from galaxy.tools.cwl import tool_proxy, tool_proxy_from_persistent_representation
 from galaxy.tools.hash import build_tool_hash
 
 log = logging.getLogger(__name__)
@@ -79,8 +79,9 @@ class DynamicToolManager(ModelManager):
                 # Else - build a tool proxy so that we can convert to the presistable
                 # hash.
                 proxy = tool_proxy(tool_object=representation)
-                tool_hash = build_tool_hash(proxy.to_persistent_representation())
-                tool_id = proxy.galaxy_id()
+                id_proxy = tool_proxy_from_persistent_representation(proxy.to_persistent_representation())
+                tool_hash = build_tool_hash(id_proxy.to_persistent_representation())
+                tool_id = id_proxy.galaxy_id()
             value = representation
         else:
             raise Exception("Unknown tool type encountered.")

@@ -66,7 +66,7 @@ def handle_outputs(job_directory=None):
     for output_name, output in outputs.items():
         if isinstance(output, dict) and "location" in output:
             target_path = job_proxy.output_path(output_name)
-            handle_known_output(output, target_path, )
+            handle_known_output(output, target_path, output_name)
         elif isinstance(output, dict):
             prefix = "%s|__part__|" % output_name
             for record_key, record_value in output.items():
