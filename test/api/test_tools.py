@@ -203,8 +203,19 @@ class ToolsTestCase(api.ApiTestCase):
             content = self.dataset_populator.get_history_dataset_content(history_id, dataset=dataset)
             assert content.strip() == "Test123"
             extra_files = self.dataset_populator.get_history_dataset_extra_files(history_id, dataset_id=dataset["id"])
-            assert len(extra_files) == 1, extra_files
-            assert False
+            assert len(extra_files) == 5, extra_files
+            # a, b, c/, c/d
+
+            found_files = 0
+            for extra_file in extra_files:
+                if extra_file["path"] == "c":
+                    assert extra_file["class"] == "Directory"
+                    found_files += 1
+                elif extra_file["path"] == "c/d":
+                    assert extra_file["class"] == "Directory"
+                    found_files += 1
+
+            assert found_files == 2
 
     def test_unzip_collection(self):
         with self.dataset_populator.test_history() as history_id:
