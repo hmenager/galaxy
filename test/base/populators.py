@@ -379,13 +379,17 @@ class BaseDatasetPopulator(object):
 
     def new_dataset_request(self, history_id, content='TestData123', wait=False, **kwds):
         payload = self.upload_payload(history_id, content, **kwds)
-        run_response = self._post("tools", data=payload)
-        run = run_response.json()
+        run_response = self.tools_post(payload)
         if wait:
-            assert run_response.status_code == 200, run
-            job = run["jobs"][0]
-            self.wait_for_job(job["id"])
-            self.wait_for_history(history_id, assert_ok=True)
+            self.wait_for_tool_run(history_id, run_response)
+        return run_response
+
+    def wait_for_tool_run(self, history_id, run_response):
+        run = run_response.json()
+        assert run_response.status_code == 200, run
+        job = run["jobs"][0]
+        self.wait_for_job(job["id"])
+        self.wait_for_history(history_id, assert_ok=True)
         return run_response
 
     def wait_for_history(self, history_id, assert_ok=False, timeout=DEFAULT_TIMEOUT):
@@ -453,6 +457,7 @@ class BaseDatasetPopulator(object):
             'files_0|NAME': name,
             'dbkey': dbkey,
             'file_type': file_type,
+
         }
         if hasattr(content, 'read'):
             upload_params["files_0|file_data"] = content
@@ -465,6 +470,7 @@ class BaseDatasetPopulator(object):
             upload_params["files_0|space_to_tab"] = kwds["space_to_tab"]
         if "auto_decompress" in kwds:
             upload_params["files_0|auto_decompress"] = kwds["auto_decompress"]
+        upload_params.update(kwds.get("extra_inputs", {}))
         return self.run_tool_payload(
             tool_id='upload1',
             inputs=upload_params,
@@ -490,12 +496,16 @@ class BaseDatasetPopulator(object):
 
     def run_tool(self, tool_id, inputs, history_id, assert_ok=True, **kwds):
         payload = self.run_tool_payload(tool_id, inputs, history_id, **kwds)
-        tool_response = self._post("tools", data=payload)
+        tool_response = self.tools_post(data=payload)
         if assert_ok:
             api_asserts.assert_status_code_is(tool_response, 200)
             return tool_response.json()
         else:
             return tool_response
+
+    def tools_post(self, payload):
+        tool_response = self._post("tools", data=payload)
+        return tool_response        
 
     def get_history_dataset_content(self, history_id, wait=True, filename=None, **kwds):
         dataset_id = self.__history_content_id(history_id, wait=wait, **kwds)

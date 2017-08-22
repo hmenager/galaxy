@@ -1,8 +1,5 @@
 class: CommandLineTool
 cwlVersion: v1.0
-hints:
-  - class: DockerRequirement
-    dockerPull: python:2-slim
 requirements:
   InitialWorkDirRequirement:
     listing:
