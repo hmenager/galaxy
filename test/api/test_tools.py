@@ -140,13 +140,12 @@ class ToolsTestCase(api.ApiTestCase):
                     "files_1|url_paste": "SecondOutputContent",
                     "files_1|NAME": "SecondOutputName",
                     "file_count": "2",
-                    "force_composite": "True",
                 }
             )
             run_response = self.dataset_populator.tools_post(payload)
             self.dataset_populator.wait_for_tool_run(history_id, run_response)
             datasets = run_response.json()["outputs"]
-            assert len(datasets) == 2
+            assert len(datasets) == 2, datasets
             content = self.dataset_populator.get_history_dataset_content(history_id, dataset=datasets[0])
             assert content.strip() == "Test123"
             content = self.dataset_populator.get_history_dataset_content(history_id, dataset=datasets[1])
