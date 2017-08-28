@@ -12,6 +12,10 @@ from collections import namedtuple
 
 from six import iteritems, StringIO
 
+STORE_SECONDARY_FILES_WITH_BASENAME = True
+SECONDARY_FILES_EXTRA_PREFIX = "__secondary_files__"
+SECONDARY_FILES_INDEX_PATH = "__secondary_files_index.json"
+
 
 def set_basename_and_derived_properties(properties, basename):
     properties["basename"] = basename
@@ -62,11 +66,11 @@ def galactic_job_json(
     datasets = []
     dataset_collections = []
 
-    def upload_file(file_path):
+    def upload_file(file_path, secondary_files):
         if not os.path.isabs(file_path):
             file_path = os.path.join(test_data_directory, file_path)
         _ensure_file_exists(file_path)
-        target = FileUploadTarget(file_path)
+        target = FileUploadTarget(file_path, secondary_files)
         upload_response = upload_func(target)
         dataset = upload_response["outputs"][0]
         datasets.append((dataset, target))
@@ -125,7 +129,30 @@ def galactic_job_json(
         if file_path is None:
             return value
 
-        return upload_file(file_path)
+        secondary_files = value.get("secondaryFiles", [])
+        secondary_files_tar_path = None
+        if secondary_files:
+            tmp = tempfile.NamedTemporaryFile(delete=False)
+            tf = tarfile.open(fileobj=tmp, mode='w:')
+            order = []
+            index_contents = {
+                "order": order
+            }
+            for secondary_file in secondary_files:
+                secondary_file_path = secondary_file.get("location", None) or value.get("path", None)
+                assert secondary_file_path, "Invalid secondaryFile entry found [%s]" % secondary_file
+                full_secondary_file_path = os.path.join(test_data_directory, secondary_file_path)
+                basename = secondary_file.get("basename") or secondary_file_path
+                order.append(basename)
+                tf.add(full_secondary_file_path, os.path.join(SECONDARY_FILES_EXTRA_PREFIX, basename))
+            tmp_index = tempfile.NamedTemporaryFile(delete=False)
+            json.dump(index_contents, tmp_index)
+            tmp_index.close()
+            tf.add(tmp_index.name, SECONDARY_FILES_INDEX_PATH)
+            tf.close()
+            secondary_files_tar_path = tmp.name
+
+        return upload_file(file_path, secondary_files_tar_path)
 
     def replacement_directory(value):
         file_path = value.get("location", None) or value.get("path", None)
@@ -196,8 +223,9 @@ def _ensure_file_exists(file_path):
 
 class FileUploadTarget(object):
 
-    def __init__(self, path):
+    def __init__(self, path, secondary_files=None):
         self.path = path
+        self.secondary_files = secondary_files
 
 
 class ObjectUploadTarget(object):
@@ -257,31 +285,49 @@ def output_to_cwl_json(
         return output_to_cwl_json(element_output, get_metadata, get_dataset)
 
     output_metadata = get_metadata(galaxy_output.history_content_type, galaxy_output.history_content_id)
+
+    def dataset_dict_to_json_content(dataset_dict):
+        if "content" in dataset_dict:
+            return json.loads(dataset_dict["content"])
+        else:
+            with open(dataset_dict["path"]) as f:
+                return json.load(f)
+
     if output_metadata["history_content_type"] == "dataset":
         ext = output_metadata["file_ext"]
         assert output_metadata["state"] == "ok"
         dataset_dict = get_dataset(output_metadata)
         if ext == "expression.json":
-            if "content" in dataset_dict:
-                return json.loads(dataset_dict["content"])
-            else:
-                with open(dataset_dict["path"]) as f:
-                    return json.load(f)
+            return dataset_dict_to_json_content(dataset_dict)
         else:
             properties = output_properties(pseduo_location=pseduo_location, **dataset_dict)
             basename = properties["basename"]
             extra_files = get_extra_files(output_metadata)
+            found_index = False
             for extra_file in extra_files:
                 if extra_file["class"] == "File":
                     path = extra_file["path"]
-                    if path.startswith("__secondary_files__/"):
-                        ec = get_dataset(output_metadata, filename=path)
-                        ec["basename"] = basename + os.path.basename(path)
-                        ec_properties = output_properties(pseduo_location=pseduo_location, **ec)
-                        if "secondaryFiles" not in properties:
-                            properties["secondaryFiles"] = []
+                    if path == SECONDARY_FILES_INDEX_PATH:
+                        found_index = True
 
-                        properties["secondaryFiles"].append(ec_properties)
+            if found_index:
+                ec = get_dataset(output_metadata, filename=SECONDARY_FILES_INDEX_PATH)
+                index = dataset_dict_to_json_content(ec)
+                for basename in index["order"]:
+                    for extra_file in extra_files:
+                        if extra_file["class"] == "File":
+                            path = extra_file["path"]
+                            if path == os.path.join(SECONDARY_FILES_EXTRA_PREFIX, basename):
+                                ec = get_dataset(output_metadata, filename=path)
+                                if not STORE_SECONDARY_FILES_WITH_BASENAME:
+                                    ec["basename"] = basename + os.path.basename(path)
+                                else:
+                                    ec["basename"] = os.path.basename(path)
+                                ec_properties = output_properties(pseduo_location=pseduo_location, **ec)
+                                if "secondaryFiles" not in properties:
+                                    properties["secondaryFiles"] = []
+
+                                properties["secondaryFiles"].append(ec_properties)
 
             return properties
 

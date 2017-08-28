@@ -1142,7 +1142,7 @@ class ToolModule(WorkflowModule):
                         replacement = {"src": "hda", "value": replacement}
                     elif isinstance(replacement, model.HistoryDatasetCollectionAssociation):
                         replacement = {"src": "hdca", "value": replacement}
-                    else:
+                    elif replacement is not NO_REPLACEMENT:
                         replacement = {"src": "json", "value": replacement}
 
                 log.info("replacement for [%s] is [%s]" % (prefixed_name, replacement))

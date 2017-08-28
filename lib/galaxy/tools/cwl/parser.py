@@ -33,11 +33,11 @@ from .representation import (
 )
 
 from .schema import non_strict_schema_loader, schema_loader
+from .util import SECONDARY_FILES_EXTRA_PREFIX
 
 log = logging.getLogger(__name__)
 
 JOB_JSON_FILE = ".cwl_job.json"
-SECONDARY_FILES_EXTRA_PREFIX = "__secondary_files__"
 
 DOCKER_REQUIREMENT = "DockerRequirement"
 SUPPORTED_TOOL_REQUIREMENTS = [
@@ -223,7 +223,8 @@ class ToolProxy(object):
     def galaxy_id(self):
         raw_id = self.id
         tool_id = None
-        if raw_id:
+        # don't reduce "search.cwl#index" to search
+        if raw_id and "#" not in raw_id:
             tool_id = os.path.splitext(os.path.basename(raw_id))[0]
         if not tool_id:
             from galaxy.tools.hash import build_tool_hash
@@ -485,14 +486,15 @@ class JobProxy(object):
             process.stageFiles(cwl_job.pathmapper, stageFunc, ignoreWritable=True, symLink=False)
 
         if hasattr(cwl_job, "generatefiles"):
+            outdir = os.path.join(self._job_directory, "working")
             # TODO: Why doesn't cwl_job.generatemapper work?
             generate_mapper = pathmapper.PathMapper(cwl_job.generatefiles["listing"],
-                                                    os.path.join(self._job_directory, "working"), os.path.join(self._job_directory, "working"), separateDirs=False)
+                                                    outdir, outdir, separateDirs=False)
             # TODO: figure out what inplace_update should be.
             inplace_update = getattr(cwl_job, "inplace_update")
             process.stageFiles(generate_mapper, stageFunc, ignoreWritable=inplace_update, symLink=False)
             from cwltool import job
-            job.relink_initialworkdir(generate_mapper, inplace_update=inplace_update)
+            job.relink_initialworkdir(generate_mapper, outdir, outdir, inplace_update=inplace_update)
         # else: expression tools do not have a path mapper.
 
     @staticmethod

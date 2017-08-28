@@ -4004,6 +4004,11 @@ class WorkflowStepInput(object):
         self.merge_type = self.default_merge_type
         self.scatter_type = self.default_scatter_type
 
+    def log_str(self):
+        return "WorkflowStepInput[name=%s]" % (
+            self.name,
+        )
+
 
 class WorkflowStepConnection(object):
     # Constant used in lieu of output_name and input_name to indicate an
@@ -4034,6 +4039,11 @@ class WorkflowStepConnection(object):
         copied_connection.output_name = self.output_name
         copied_connection.input_name = self.input_name
         return copied_connection
+
+    def log_str(self):
+        return "WorkflowStepConnection[output_step_id=%s,output_name=%s,input_step_id=%s,input_name=%s]" % (
+            self.output_step_id, self.output_name, self.input_step_id, self.input_name
+        )
 
 
 class WorkflowOutput(object):

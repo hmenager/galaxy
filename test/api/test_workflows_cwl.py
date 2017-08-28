@@ -43,6 +43,24 @@ class CwlWorkflowsTestCase(BaseCwlWorklfowTestCase):
         output = self.dataset_populator.get_history_dataset_content(self.history_id, hid=2)
         assert re.search(r"\s+4\s+9\s+47\s+", output)
 
+    def test_load_ids(self):
+        workflow_id = self._load_workflow("v1.0/search.cwl#main")
+        workflow_content = self._download_workflow(workflow_id)
+        for step_index, step in workflow_content["steps"].items():
+            if "tool_representation" in step:
+                del step["tool_representation"]
+
+        print(workflow_content)
+        steps = workflow_content["steps"]
+        step_3 = steps["3"]
+        step_4 = steps["4"]
+
+        assert step_3["label"] == "index", step_3
+        assert step_4["label"] == "search", step_4
+
+        print(step_3)
+        print(step_4)
+
     def test_count_line1_v1(self):
         """Test simple workflow v1.0/count-lines1-wf.cwl."""
         self._run_count_lines_wf("v1.0/count-lines1-wf.cwl")

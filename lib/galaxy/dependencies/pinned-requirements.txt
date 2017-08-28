@@ -84,5 +84,5 @@ chronos-python==0.38.0
 python-genomespaceclient==0.1.8
 
 # For CWL support.
-cwltool==1.0.20170727112954
+cwltool==1.0.20170828135420
 cwltest==1.0.20170809112706  # TODO: only required for testing...

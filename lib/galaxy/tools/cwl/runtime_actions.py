@@ -8,6 +8,19 @@ from .parser import (
     load_job_proxy,
 )
 
+from .util import (
+    SECONDARY_FILES_INDEX_PATH,
+    STORE_SECONDARY_FILES_WITH_BASENAME,
+)
+
+
+def _possible_uri_to_path(location):
+    if location.startswith("file://"):
+        path = ref_resolver.uri_file_path(location)
+    else:
+        path = location
+    return path
+
 
 def handle_outputs(job_directory=None):
     # Relocate dynamically collected files to pre-determined locations
@@ -30,25 +43,54 @@ def handle_outputs(job_directory=None):
 
     def move_output_file(output, target_path, output_name=None):
         assert output["class"] == "File"
-        output_path = ref_resolver.uri_file_path(output["location"])
+        output_path = _possible_uri_to_path(output["location"])
         shutil.move(output_path, target_path)
 
-        for secondary_file in output.get("secondaryFiles", []):
-            if output_name is None:
-                raise NotImplementedError("secondaryFiles are unimplemented for dynamic list elements")
+        secondary_files = output.get("secondaryFiles", [])
+        if secondary_files:
 
-            # TODO: handle nested files...
-            secondary_file_path = ref_resolver.uri_file_path(secondary_file["location"])
-            assert secondary_file_path.startswith(output_path)
-            secondary_file_name = secondary_file_path[len(output_path):]
-            secondary_files_dir = job_proxy.output_secondary_files_dir(
-                output_name, create=True
-            )
-            extra_target = os.path.join(secondary_files_dir, secondary_file_name)
-            shutil.move(
-                secondary_file_path,
-                extra_target,
-            )
+            order = []
+            index_contents = {
+                "order": order
+            }
+
+            for secondary_file in secondary_files:
+                if output_name is None:
+                    raise NotImplementedError("secondaryFiles are unimplemented for dynamic list elements")
+
+                # TODO: handle nested files...
+                secondary_file_path = _possible_uri_to_path(secondary_file["location"])
+                # assert secondary_file_path.startswith(output_path), "[%s] does not start with [%s]" % (secondary_file_path, output_path)
+                secondary_file_basename = secondary_file["basename"]
+
+                if not STORE_SECONDARY_FILES_WITH_BASENAME:
+                    output_basename = output["basename"]
+                    prefix = ""
+                    while True:
+                        if secondary_file_basename.startswith(output_basename):
+                            secondary_file_name = prefix + secondary_file_basename[len(output_basename):]
+                            break
+                        prefix = "^%s" % prefix
+                        if "." not in output_basename:
+                            secondary_file_name = prefix + secondary_file_name
+                            break
+                        else:
+                            output_basename = output_basename.rsplit(".", 1)[0]
+                else:
+                    secondary_file_name = secondary_file_basename
+                # Convert to ^ format....
+                secondary_files_dir = job_proxy.output_secondary_files_dir(
+                    output_name, create=True
+                )
+                extra_target = os.path.join(secondary_files_dir, secondary_file_name)
+                shutil.move(
+                    secondary_file_path,
+                    extra_target,
+                )
+                order.append(secondary_file_name)
+
+            with open(os.path.join(secondary_files_dir, "..", SECONDARY_FILES_INDEX_PATH), "w") as f:
+                json.dump(index_contents, f)
 
         return {"cwl_filename": output["basename"]}
 

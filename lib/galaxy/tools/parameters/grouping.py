@@ -213,6 +213,8 @@ class UploadDataset(Group):
         if dataset_name is None:
             dataset_name = context.get('files_metadata', {}).get('base_name', None)
         if dataset_name is None:
+            dataset_name = context.get("files")[0].get("NAME", None)
+        if dataset_name is None:
             dataset_name = 'Uploaded Composite Dataset (%s)' % self.get_file_type(context)
         return dataset_name
 

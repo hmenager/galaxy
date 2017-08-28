@@ -238,11 +238,24 @@ class CwlPopulator(object):
                     with open(path, "rb") as f:
                         content = f.read()
 
+                name = os.path.basename(path)
+
+                extra_inputs = dict()
+                if upload_target.secondary_files:
+                    assert UPLOAD_VIA == "path"
+                    extra_inputs["files_1|url_paste"] = "file://%s" % upload_target.secondary_files
+                    extra_inputs["files_1|type"] = "upload_dataset"
+                    extra_inputs["files_1|auto_decompress"] = True
+                    extra_inputs["file_count"] = "2"
+                    extra_inputs["force_composite"] = "True"
+
                 return self.dataset_populator.new_dataset_request(
                     history_id=history_id,
-                    content='content',
+                    content=content,
                     file_type="auto",
-                    name=os.path.basename(path),
+                    name=name,
+                    auto_decompress=False,
+                    extra_inputs=extra_inputs,
                 ).json()
             elif isinstance(upload_target, DirectoryUploadTarget):
                 path = upload_target.tar_path

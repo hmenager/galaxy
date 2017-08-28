@@ -249,7 +249,7 @@ def test_search_workflow():
 
     print("======")
     print galaxy_workflow_dict
-    assert False
+    # assert False
 
 
 def test_workflow_simple_optional_input():
@@ -422,7 +422,7 @@ class CwlToolObjectTestCase(TestCase, tools_support.UsesApp, tools_support.UsesT
         input_json = to_cwl_job(self.tool, wrapped_params.params, self.test_directory)
         print inputs
         print "to_cwl_job is %s" % input_json
-        assert False
+        # assert False
 
     def _new_hda(self):
         hda = galaxy.model.HistoryDatasetAssociation(history=self.history)

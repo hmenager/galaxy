@@ -127,18 +127,26 @@ def dataset_wrapper_to_file_json(inputs_dir, dataset_wrapper):
     extra_files_path = dataset_wrapper.extra_files_path
     secondary_files_path = os.path.join(extra_files_path, "__secondary_files__")
     path = str(dataset_wrapper)
+    raw_file_object = {"class": "File"}
+
     if os.path.exists(secondary_files_path):
         safe_makedirs(inputs_dir)
         name = os.path.basename(path)
         new_input_path = os.path.join(inputs_dir, name)
         os.symlink(path, new_input_path)
+        secondary_files = []
         for secondary_file_name in os.listdir(secondary_files_path):
             secondary_file_path = os.path.join(secondary_files_path, secondary_file_name)
-            os.symlink(secondary_file_path, new_input_path + secondary_file_name)
+            target = os.path.join(inputs_dir, secondary_file_name)
+            log.info("linking [%s] to [%s]" % (secondary_file_path, target))
+            os.symlink(secondary_file_path, target)
+            is_dir = os.path.isdir(os.path.realpath(secondary_file_path))
+            secondary_files.append({"class": "File" if not is_dir else "Directory", "location": target})
+
+        raw_file_object["secondaryFiles"] = secondary_files
         path = new_input_path
 
-    raw_file_object = {"location": path,
-                       "class": "File"}
+    raw_file_object["location"] = path
     set_basename_and_derived_properties(raw_file_object, str(dataset_wrapper.cwl_filename or dataset_wrapper.name))
     return raw_file_object
 
