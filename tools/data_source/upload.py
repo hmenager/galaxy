@@ -380,7 +380,7 @@ def add_composite_file(dataset, json_file, output_path, files_path):
                 break
             elif dataset.composite_file_paths[value.name] is not None:
                 composite_file_path = dataset.composite_file_paths[value.name]
-                stage_file(composite_file_path, value.is_binary, value.space_to_tab)
+                stage_file(name, composite_file_path, value.is_binary)
 
     # Do we have ad-hoc user supplied composite files.
     elif dataset.composite_file_paths:
