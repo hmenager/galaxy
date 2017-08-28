@@ -3,6 +3,7 @@ import json
 import os.path
 import time
 
+from functools import wraps
 from operator import itemgetter
 
 import cwltest
@@ -45,8 +46,9 @@ UPLOAD_VIA = "path"  # or content, but content breaks down for empty uploads, ta
 
 
 def skip_without_tool(tool_id):
-    """ Decorate an API test method as requiring a specific tool,
-    have nose skip the test case is the tool is unavailable.
+    """Decorate an API test method as requiring a specific tool.
+
+    Have test framework skip the test case is the tool is unavailable.
     """
 
     def method_wrapper(method):
@@ -58,19 +60,44 @@ def skip_without_tool(tool_id):
             tool_ids = [itemgetter("id")(_) for _ in tools]
             return tool_ids
 
+        @wraps(method)
         def wrapped_method(api_test_case, *args, **kwargs):
-            if tool_id not in get_tool_ids(api_test_case):
-                from nose.plugins.skip import SkipTest
-                raise SkipTest()
-
+            _raise_skip_if(tool_id not in get_tool_ids(api_test_case))
             return method(api_test_case, *args, **kwargs)
 
-        # Must preserve method name so nose can detect and report tests by
-        # name.
-        wrapped_method.__name__ = method.__name__
         return wrapped_method
 
     return method_wrapper
+
+
+def skip_without_datatype(extension):
+    """Decorate an API test method as requiring a specific datatype.
+
+    Have test framework skip the test case is the tool is unavailable.
+    """
+
+    def has_datatype(api_test_case):
+        index_response = api_test_case.galaxy_interactor.get("datatypes")
+        assert index_response.status_code == 200, "Failed to fetch datatypes for target Galaxy."
+        datatypes = index_response.json()
+        assert isinstance(datatypes, list)
+        return extension in datatypes
+
+    def method_wrapper(method):
+        @wraps(method)
+        def wrapped_method(api_test_case, *args, **kwargs):
+            _raise_skip_if(not has_datatype(api_test_case))
+            method(api_test_case, *args, **kwargs)
+
+        return wrapped_method
+
+    return method_wrapper
+
+
+def _raise_skip_if(check):
+    if check:
+        from nose.plugins.skip import SkipTest
+        raise SkipTest()
 
 
 # Deprecated mixin, use dataset populator instead.

@@ -6,7 +6,8 @@ from base.populators import (
     DatasetCollectionPopulator,
     DatasetPopulator,
     LibraryPopulator,
-    skip_without_tool
+    skip_without_tool,
+    skip_without_datatype,
 )
 from galaxy.tools.verify.test_data import TestDataResolver
 
@@ -132,6 +133,41 @@ class ToolsTestCase(api.ApiTestCase):
         rdata_path = TestDataResolver().get_filename("1.RData")
         rdata_metadata = self._upload_and_get_details(open(rdata_path, "rb"), file_type="auto")
         self.assertEquals(rdata_metadata["file_ext"], "rdata")
+
+    @skip_without_datatype("velvet")
+    def test_composite_datatype(self):
+        with self.dataset_populator.test_history() as history_id:
+            base_file = open(TestDataResolver().get_filename("velveth_test1/output.html"), "rb")
+            payload = self.dataset_populator.upload_payload(history_id, base_file,
+                file_type="velvet",
+                extra_inputs={
+                    "files_1|url_paste": "roadmaps content",
+                    "files_1|type": "upload_dataset",
+                    "files_2|url_paste": "log content",
+                    "files_2|type": "upload_dataset",
+                }
+            )
+            run_response = self.dataset_populator.tools_post(payload)
+            self.dataset_populator.wait_for_tool_run(history_id, run_response)
+            datasets = run_response.json()["outputs"]
+            assert len(datasets) == 1
+            dataset = datasets[0]
+
+            sequences_content = self.dataset_populator.get_history_dataset_content(history_id, dataset=dataset, filename="Roadmaps")
+            assert sequences_content.strip() == "roadmaps content", sequences_content
+
+            # A future PR will enable this additional testing - testing works in
+            # CWL branch.
+            #
+            # extra_files = self.dataset_populator.get_history_dataset_extra_files(history_id, dataset_id=dataset["id"])
+            # assert len(extra_files) == 3
+            # sorted(extra_files, key=lambda ef: ef["path"])
+            # log_extra_file = extra_files[0]
+            # roadmaps_extra_file = extra_files[1]
+            # sequences_extra_file = extra_files[2]
+            # assert sequences_extra_file["path"] == "Sequences", sequences_extra_file
+            # assert roadmaps_extra_file["path"] == "Roadmaps", roadmaps_extra_file
+            # assert log_extra_file["path"] == "Log", log_extra_file
 
     def test_upload_multiple_files(self):
         with self.dataset_populator.test_history() as history_id:
