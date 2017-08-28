@@ -168,7 +168,6 @@ class ToolsTestCase(api.ApiTestCase):
             assert content.strip() == "Test123"
             extra_files = self.dataset_populator.get_history_dataset_extra_files(history_id, dataset_id=dataset["id"])
             assert len(extra_files) == 1, extra_files
-            assert False
 
     def test_unzip_collection(self):
         with self.dataset_populator.test_history() as history_id:

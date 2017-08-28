@@ -350,7 +350,7 @@ def add_composite_file(dataset, json_file, output_path, files_path):
     def make_files_path():
         os.mkdir(files_path)
 
-    def stage_file(name, composite_file_path, is_binary, space_to_tab):
+    def stage_file(name, composite_file_path, is_binary=False):
         dp = composite_file_path['path']
         isurl = dp.find('://') != -1  # todo fixme
         if isurl:
@@ -364,7 +364,7 @@ def add_composite_file(dataset, json_file, output_path, files_path):
         if not is_binary:
             tmpdir = output_adjacent_tmpdir(output_path)
             tmp_prefix = 'data_id_%s_convert_' % dataset.dataset_id
-            if composite_file_path.get('space_to_tab', space_to_tab):
+            if composite_file_path.get('space_to_tab'):
                 sniff.convert_newlines_sep2tabs(dp, tmp_dir=tmpdir, tmp_prefix=tmp_prefix)
             else:
                 sniff.convert_newlines(dp, tmp_dir=tmpdir, tmp_prefix=tmp_prefix)
@@ -386,7 +386,7 @@ def add_composite_file(dataset, json_file, output_path, files_path):
     elif dataset.composite_file_paths:
         make_files_path()
         for key, composite_file in dataset.composite_file_paths.items():
-            stage_file(key, composite_file, False, False)  # TODO: replace these defaults
+            stage_file(key, composite_file)  # TODO: replace these defaults
 
     # Move the dataset to its "real" path
     shutil.move(dataset.primary_file, output_path)
