@@ -14,7 +14,6 @@ from abc import ABCMeta, abstractmethod
 
 import six
 
-from galaxy.tools.hash import build_tool_hash
 from galaxy.util import listify, safe_makedirs
 from galaxy.util.bunch import Bunch
 from galaxy.util.odict import odict
@@ -227,6 +226,7 @@ class ToolProxy(object):
         if raw_id:
             tool_id = os.path.splitext(os.path.basename(raw_id))[0]
         if not tool_id:
+            from galaxy.tools.hash import build_tool_hash
             tool_id = build_tool_hash(self.to_persistent_representation())
         assert tool_id
         return tool_id
@@ -846,6 +846,7 @@ class ToolStepProxy(BaseStepProxy):
         # in-memory tool and reference by the JSONLD ID I think. So workflow
         # proxy should force the loading of a tool.
         tool_proxy = cwl_tool_object_to_proxy(self.tool_references()[0])
+        from galaxy.tools.hash import build_tool_hash
         tool_hash = build_tool_hash(tool_proxy.to_persistent_representation())
 
         # We need to stub out null entries for things getting replaced by
