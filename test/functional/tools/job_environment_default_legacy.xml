@@ -8,6 +8,8 @@
       echo `pwd` > '$pwd';
       echo "\$HOME" > '$home';
       echo "\$TMP"  > '$tmp';
+      touch "$HOME"/home_file;
+      touch "$TMP"/tmp_file;
     ]]></command>
     <inputs>
     </inputs>
