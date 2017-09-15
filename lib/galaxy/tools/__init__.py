@@ -2383,10 +2383,6 @@ class CwlTool(Tool):
             output_dict,
             local_working_directory,
         )
-        # Write representation to disk that can be reloaded at runtime
-        # and outputs collected before Galaxy metadata is gathered.
-        cwl_job_proxy.save_job()
-
         cwl_command_line = cwl_job_proxy.command_line
         cwl_stdin = cwl_job_proxy.stdin
         cwl_stdout = cwl_job_proxy.stdout
@@ -2407,6 +2403,12 @@ class CwlTool(Tool):
         # Move to prepare...
         safe_makedirs(tool_working_directory)
         cwl_job_proxy.stage_files()
+
+        cwl_job_proxy.rewrite_inputs_for_staging()
+        log.debug("REWRITTEN INPUTS_DICT %s" % cwl_job_proxy._input_dict)
+        # Write representation to disk that can be reloaded at runtime
+        # and outputs collected before Galaxy metadata is gathered.
+        cwl_job_proxy.save_job()
 
         param_dict["__cwl_command"] = command_line
         log.info("__cwl_command is %s" % command_line)
