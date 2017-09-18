@@ -411,6 +411,7 @@ class Tool(object, Dictifiable):
     requires_setting_metadata = True
     default_tool_action = DefaultToolAction
     dict_collection_visible_keys = ('id', 'name', 'version', 'description', 'labels')
+    may_use_container_entry_point = False
 
     def __init__(self, config_file, tool_source, app, guid=None, repository_id=None, allow_code_files=True, dynamic=False):
         """Load a tool from the config named by `config_file`"""
@@ -2361,6 +2362,7 @@ class ImportHistoryTool(Tool):
 
 class CwlTool(Tool):
     tool_type = 'cwl'
+    may_use_container_entry_point = True
 
     def exec_before_job(self, app, inp_data, out_data, param_dict=None):
         super(CwlTool, self).exec_before_job(app, inp_data, out_data, param_dict=param_dict)
