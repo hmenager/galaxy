@@ -393,6 +393,7 @@ class HasDockerLikeVolumes:
                 variables[name] = os.path.abspath(value)
 
         add_var("working_directory", self.job_info.working_directory)
+        add_var("tmp_directory", self.job_info.tmp_directory)
         add_var("job_directory", self.job_info.job_directory)
         add_var("tool_directory", self.job_info.tool_directory)
         add_var("galaxy_root", self.app_info.galaxy_root_dir)
@@ -412,6 +413,8 @@ class HasDockerLikeVolumes:
                 defaults += ",$tool_directory:default_ro"
             if self.job_info.job_directory:
                 defaults += ",$job_directory:default_ro"
+            if self.job_info.tmp_directory is not None:
+                defaults += ",$tmp_directory:rw"
             if self.app_info.outputs_to_working_directory:
                 # Should need default_file_path (which is of course an estimate given
                 # object stores anyway).
