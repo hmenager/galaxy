@@ -271,9 +271,9 @@ def add_file(dataset, registry, json_file, output_path):
                     data_type = 'binary'
                     # binary_ok = False
                     parts = dataset.name.split(".")
-                    if len(parts) > 1:
+                    if check_content and len(parts) > 1:
                         ext = parts[-1].strip().lower()
-                        if check_content and not Binary.is_ext_unsniffable(ext):
+                        if not Binary.is_ext_unsniffable(ext):
                             file_err('The uploaded binary file contains inappropriate content', dataset, json_file)
                             return
                         elif Binary.is_ext_unsniffable(ext) and dataset.file_type != ext:
