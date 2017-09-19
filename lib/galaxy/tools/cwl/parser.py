@@ -505,6 +505,10 @@ class JobProxy(object):
         output_id = self._output_dict[output_name]["path"]
         return output_id
 
+    def output_directory_contents_dir(self, output_name, create=False):
+        extra_files_dir = self._output_extra_files_dir(output_name)
+        return extra_files_dir
+
     def output_secondary_files_dir(self, output_name, create=False):
         extra_files_dir = self._output_extra_files_dir(output_name)
         secondary_files_dir = os.path.join(extra_files_dir, SECONDARY_FILES_EXTRA_PREFIX)
