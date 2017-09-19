@@ -141,6 +141,8 @@ class CwlToolSource(ToolSource):
         output = ToolOutput(name)
         if "File" in output_instance.output_data_type:
             output.format = "_sniff_"
+        elif "Directory" in output_instance.output_data_type:
+            output.format = "directory"
         else:
             output.format = "expression.json"
         output.change_format = []
