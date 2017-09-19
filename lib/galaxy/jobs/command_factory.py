@@ -115,6 +115,8 @@ def build_command(
             # retries - what can we do with that information?
             commands_builder.prepend_command("cd working")
 
+        commands_builder.prepend_command("rm -rf tmp; mkdir -p tmp")
+
     if include_work_dir_outputs:
         __handle_work_dir_outputs(commands_builder, job_wrapper, runner, remote_command_params)
 
