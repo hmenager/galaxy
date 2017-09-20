@@ -1347,14 +1347,17 @@ class JobWrapper(object, HasResourceParameters):
                             dataset.set_peek(is_multi_byte=True)
                         else:
                             dataset.set_peek()
-                    for context_key in ['name', 'info', 'dbkey', 'cwl_filename']:
-                        if context_key in context:
-                            context_value = context[context_key]
-                            setattr(dataset, context_key, context_value)
                 else:
                     dataset.blurb = "empty"
                     if dataset.ext == 'auto':
                         dataset.extension = 'txt'
+
+                # Allow setting these fields for empty files as well...
+                for context_key in ['name', 'info', 'dbkey', 'cwl_filename']:
+                    if context_key in context:
+                        context_value = context[context_key]
+                        setattr(dataset, context_key, context_value)
+
                 self.sa_session.add(dataset)
             if job.states.ERROR == final_job_state:
                 log.debug("(%s) setting dataset %s state to ERROR", job.id, dataset_assoc.dataset.dataset.id)
