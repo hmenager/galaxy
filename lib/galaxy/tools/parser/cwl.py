@@ -140,7 +140,7 @@ class CwlToolSource(ToolSource):
         # TODO: handle filters, actions, change_format
         output = ToolOutput(name)
         if "File" in output_instance.output_data_type:
-            output.format = "_sniff_"
+            output.format = "data"
         elif "Directory" in output_instance.output_data_type:
             output.format = "directory"
         else:
