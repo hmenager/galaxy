@@ -3,6 +3,7 @@
 
 from .test_workflows_cwl import BaseCwlWorklfowTestCase
 
+
 class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
     """Test case mapping to CWL conformance tests for version $version."""
 
@@ -2197,6 +2198,74 @@ same input, flattened merge behavior. Workflow inputs are set as list
         self.cwl_populator.run_conformance_test("""v1.0""", """Test File input with default specified to workflow""")
 
     def test_conformance_v1_0_127(self):
+        """Test input union type or File or File array to a tool with one file in array specified.
+
+        Generated from::
+
+            job: v1.0/job-input-array-one-empty-file.json
+            output:
+              output_file:
+                basename: output.txt
+                checksum: sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709
+                class: File
+                location: Any
+                size: 0
+            tool: v1.0/io-file-or-files.cwl
+        """
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test input union type or File or File array to a tool with one file in array specified.""")
+
+    def test_conformance_v1_0_128(self):
+        """Test input union type or File or File array to a tool with a few files in array specified.
+
+        Generated from::
+
+            job: v1.0/job-input-array-few-files.json
+            output:
+              output_file:
+                basename: output.txt
+                checksum: sha1$6d1723861ad5a1260f1c3c07c93076c5a215f646
+                class: File
+                location: Any
+                size: 1114
+            tool: v1.0/io-file-or-files.cwl
+        """
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test input union type or File or File array to a tool with a few files in array specified.""")
+
+    def test_conformance_v1_0_129(self):
+        """Test input union type or File or File array to a tool with one file specified.
+
+        Generated from::
+
+            job: v1.0/job-input-one-file.json
+            output:
+              output_file:
+                basename: output.txt
+                checksum: sha1$327fc7aedf4f6b69a42a7c8b808dc5a7aff61376
+                class: File
+                location: Any
+                size: 1111
+            tool: v1.0/io-file-or-files.cwl
+        """
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test input union type or File or File array to a tool with one file specified.""")
+
+    def test_conformance_v1_0_130(self):
+        """Test input union type or File or File array to a tool with null specified.
+
+        Generated from::
+
+            job: v1.0/job-input-null.json
+            output:
+              output_file:
+                basename: output.txt
+                checksum: sha1$503458abf7614be3fb26d85ff5d8f3e17aa0a552
+                class: File
+                location: Any
+                size: 10
+            tool: v1.0/io-file-or-files.cwl
+        """
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test input union type or File or File array to a tool with null specified.""")
+
+    def test_conformance_v1_0_131(self):
         """Test Any parameter with integer input to a tool
 
         Generated from::
@@ -2208,7 +2277,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with integer input to a tool""")
 
-    def test_conformance_v1_0_128(self):
+    def test_conformance_v1_0_132(self):
         """Test Any parameter with string input to a tool
 
         Generated from::
@@ -2220,7 +2289,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with string input to a tool""")
 
-    def test_conformance_v1_0_129(self):
+    def test_conformance_v1_0_133(self):
         """Test Any parameter with file input to a tool
 
         Generated from::
@@ -2232,7 +2301,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with file input to a tool""")
 
-    def test_conformance_v1_0_130(self):
+    def test_conformance_v1_0_134(self):
         """Test Any parameter with array input to a tool
 
         Generated from::
@@ -2246,7 +2315,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with array input to a tool""")
 
-    def test_conformance_v1_0_131(self):
+    def test_conformance_v1_0_135(self):
         """Test Any parameter with record input to a tool
 
         Generated from::
@@ -2260,7 +2329,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with record input to a tool""")
 
-    def test_conformance_v1_0_132(self):
+    def test_conformance_v1_0_136(self):
         """Test Any parameter with integer input to a workflow
 
         Generated from::
@@ -2272,7 +2341,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with integer input to a workflow""")
 
-    def test_conformance_v1_0_133(self):
+    def test_conformance_v1_0_137(self):
         """Test Any parameter with string input to a workflow
 
         Generated from::
@@ -2284,7 +2353,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with string input to a workflow""")
 
-    def test_conformance_v1_0_134(self):
+    def test_conformance_v1_0_138(self):
         """Test Any parameter with file input to a workflow
 
         Generated from::
@@ -2296,7 +2365,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with file input to a workflow""")
 
-    def test_conformance_v1_0_135(self):
+    def test_conformance_v1_0_139(self):
         """Test Any parameter with array input to a workflow
 
         Generated from::
@@ -2310,7 +2379,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with array input to a workflow""")
 
-    def test_conformance_v1_0_136(self):
+    def test_conformance_v1_0_140(self):
         """Test Any parameter with record input to a tool
 
         Generated from::
@@ -2324,7 +2393,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test Any parameter with record input to a tool""")
 
-    def test_conformance_v1_0_137(self):
+    def test_conformance_v1_0_141(self):
         """Test union type input to workflow with default unspecified
 
         Generated from::
@@ -2336,7 +2405,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test union type input to workflow with default unspecified""")
 
-    def test_conformance_v1_0_138(self):
+    def test_conformance_v1_0_142(self):
         """Test union type input to workflow with default specified as file
 
         Generated from::
@@ -2348,7 +2417,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test union type input to workflow with default specified as file""")
 
-    def test_conformance_v1_0_139(self):
+    def test_conformance_v1_0_143(self):
         """Test valueFrom on workflow step from literal (string).
 
         Generated from::
@@ -2362,7 +2431,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test valueFrom on workflow step from literal (string).""")
 
-    def test_conformance_v1_0_140(self):
+    def test_conformance_v1_0_144(self):
         """Test valueFrom on workflow step using basename.
 
         Generated from::
@@ -2379,7 +2448,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test valueFrom on workflow step using basename.""")
 
-    def test_conformance_v1_0_141(self):
+    def test_conformance_v1_0_145(self):
         """Test output arrays in a tool (with ints).
 
         Generated from::
@@ -2394,7 +2463,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test output arrays in a tool (with ints).""")
 
-    def test_conformance_v1_0_142(self):
+    def test_conformance_v1_0_146(self):
         """Test output arrays in a workflow (with ints).
 
         Generated from::
@@ -2406,7 +2475,7 @@ same input, flattened merge behavior. Workflow inputs are set as list
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test output arrays in a workflow (with ints).""")
 
-    def test_conformance_v1_0_143(self):
+    def test_conformance_v1_0_147(self):
         """Test output arrays in a workflow (with Files).
 
         Generated from::
@@ -2422,14 +2491,13 @@ same input, flattened merge behavior. Workflow inputs are set as list
               - basename: cow
                 checksum: sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709
                 class: File
-                http://commonwl.org/cwltool#generation: 0
                 location: Any
                 size: 0
             tool: v1.0/output-arrays-file-wf.cwl
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test output arrays in a workflow (with Files).""")
 
-    def test_conformance_v1_0_144(self):
+    def test_conformance_v1_0_148(self):
         """Test Docker ENTRYPOINT usage
 
         Generated from::
@@ -2445,4 +2513,38 @@ same input, flattened merge behavior. Workflow inputs are set as list
             tool: v1.0/docker-run-cmd.cwl
         """
         self.cwl_populator.run_conformance_test("""v1.0""", """Test Docker ENTRYPOINT usage""")
+
+    def test_conformance_v1_0_149(self):
+        """Test use of size in expressions for an empty file
+
+        Generated from::
+
+            job: v1.0/job-input-array-one-empty-file.json
+            output:
+              output_file:
+                basename: output.txt
+                checksum: sha1$dad5a8472b87f6c5ef87d8fc6ef1458defc57250
+                class: File
+                location: Any
+                size: 11
+            tool: v1.0/size-expression-tool.cwl
+        """
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test use of size in expressions for an empty file""")
+
+    def test_conformance_v1_0_150(self):
+        """Test use of size in expressions for a few files
+
+        Generated from::
+
+            job: v1.0/job-input-array-few-files.json
+            output:
+              output_file:
+                basename: output.txt
+                checksum: sha1$9def39730e8012bd09bf8387648982728501737d
+                class: File
+                location: Any
+                size: 31
+            tool: v1.0/size-expression-tool.cwl
+        """
+        self.cwl_populator.run_conformance_test("""v1.0""", """Test use of size in expressions for a few files""")
 

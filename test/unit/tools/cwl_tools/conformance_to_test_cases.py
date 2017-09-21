@@ -12,6 +12,7 @@ TEST_FILE_TEMPLATE = string.Template('''
 
 from .test_workflows_cwl import BaseCwlWorklfowTestCase
 
+
 class CwlConformanceTestCase(BaseCwlWorklfowTestCase):
     """Test case mapping to CWL conformance tests for version $version."""
 $tests
