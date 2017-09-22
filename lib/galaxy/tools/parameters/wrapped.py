@@ -103,8 +103,14 @@ class WrappedParameters(object):
                                                   datatypes_registry=trans.app.datatypes_registry,
                                                   tool=tool,
                                                   name=input.name)
+                elif src == "hdca":
+                    return DatasetCollectionWrapper(None,
+                                                    value["value"],
+                                                    datatypes_registry=trans.app.datatypes_registry,
+                                                    tool=tool,
+                                                    name=input.name)
                 else:
-                    assert False
+                    assert False, "Unknown src encountered [%s] for field type value [%s]" % (src, value)
             else:
                 input_values[input.name] = InputValueWrapper(input, value, incoming)
 
