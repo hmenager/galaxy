@@ -510,7 +510,7 @@ class WorkflowProgress(object):
             step_id = step.id
             if step_id not in self.inputs_by_step_id:
                 template = "Step with id %s not found in inputs_step_id (%s)"
-                message = template % (step_id, self.inputs_by_step_id)
+                message = template % (step.log_str(), self.inputs_by_step_id)
                 raise ValueError(message)
             outputs['output'] = self.inputs_by_step_id[step_id]
 

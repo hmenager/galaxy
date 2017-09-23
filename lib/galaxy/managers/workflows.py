@@ -880,7 +880,12 @@ class WorkflowContentsManager(UsesAnnotations):
                 step_input.name = input_dict["name"]
                 step_input.merge_type = input_dict.get("merge_type", step_input.default_merge_type)
                 step_input.scatter_type = input_dict.get("scatter_type", step_input.default_scatter_type)
-                step_input.value_from = input_dict.get("value_from", None)
+                value_from = input_dict.get("value_from", None)
+                if value_from is None:
+                    # Super hacky - we probably need distinct value from and
+                    # default handling.
+                    value_from = input_dict.get("default")
+                step_input.value_from = value_from
                 step.inputs.append(step_input)
 
         # Create the model class for the step
