@@ -9,6 +9,7 @@ import errno
 import os
 import shutil
 import sys
+import tarfile
 from json import dump, load, loads
 
 from six.moves.urllib.request import urlopen
@@ -17,6 +18,7 @@ from galaxy import util
 from galaxy.datatypes import sniff
 from galaxy.datatypes.registry import Registry
 from galaxy.datatypes.upload_util import handle_upload, UploadProblemException
+from galaxy.util import in_directory, safe_makedirs
 
 assert sys.version_info[:2] >= (2, 7)
 
@@ -167,32 +169,73 @@ def add_file(dataset, registry, output_path):
 
 
 def add_composite_file(dataset, output_path, files_path):
+
+    def to_path(path_or_url):
+        is_url = path_or_url.find('://') != -1  # todo fixme
+        if is_url:
+            try:
+                temp_name, dataset.is_multi_byte = sniff.stream_to_file(urlopen(path_or_url), prefix='url_paste')
+            except Exception as e:
+                raise UploadProblemException('Unable to fetch %s\n%s' % (dp, str(e)))
+
+            return temp_name, is_url
+
+        return path_or_url, is_url
+
+    def make_files_path():
+        safe_makedirs(files_path)
+
+    def stage_file(name, composite_file_path, is_binary=False):
+        dp = composite_file_path['path']
+        path, is_url = to_path(dp)
+        if is_url:
+            dataset.path = path
+            dp = path
+
+        auto_decompress = composite_file_path.get('auto_decompress', True)
+        if auto_decompress and tarfile.is_tarfile(dp):
+            tar = tarfile.open(dp, "r:*")
+            for tarinfo in tar.getmembers():
+                rel_path = tarinfo.name
+                dest_path = os.path.join(files_path, rel_path)
+                if not in_directory(dest_path, files_path):
+                    raise Exception("Invalid tar file uploaded!")
+                if tarinfo.isdir():
+                    safe_makedirs(dest_path)
+                elif tarinfo.isreg():
+                    tar.extract(tarinfo, path=files_path)
+        else:
+            if not is_binary:
+                tmpdir = output_adjacent_tmpdir(output_path)
+                tmp_prefix = 'data_id_%s_convert_' % dataset.dataset_id
+                if composite_file_path.get('space_to_tab'):
+                    sniff.convert_newlines_sep2tabs(dp, tmp_dir=tmpdir, tmp_prefix=tmp_prefix)
+                else:
+                    sniff.convert_newlines(dp, tmp_dir=tmpdir, tmp_prefix=tmp_prefix)
+            shutil.move(dp, os.path.join(files_path, name))
+
+    # Do we have pre-defined composite files from the datatype definition.
     if dataset.composite_files:
-        os.mkdir(files_path)
+        make_files_path()
         for name, value in dataset.composite_files.items():
             value = util.bunch.Bunch(**value)
             if dataset.composite_file_paths[value.name] is None and not value.optional:
                 raise UploadProblemException('A required composite data file was not provided (%s)' % name)
             elif dataset.composite_file_paths[value.name] is not None:
-                dp = dataset.composite_file_paths[value.name]['path']
-                isurl = dp.find('://') != -1  # todo fixme
-                if isurl:
-                    try:
-                        temp_name = sniff.stream_to_file(urlopen(dp), prefix='url_paste')
-                    except Exception as e:
-                        raise UploadProblemException('Unable to fetch %s\n%s' % (dp, str(e)))
-                    dataset.path = temp_name
-                    dp = temp_name
-                if not value.is_binary:
-                    tmpdir = output_adjacent_tmpdir(output_path)
-                    tmp_prefix = 'data_id_%s_convert_' % dataset.dataset_id
-                    if dataset.composite_file_paths[value.name].get('space_to_tab', value.space_to_tab):
-                        sniff.convert_newlines_sep2tabs(dp, tmp_dir=tmpdir, tmp_prefix=tmp_prefix)
-                    else:
-                        sniff.convert_newlines(dp, tmp_dir=tmpdir, tmp_prefix=tmp_prefix)
-                shutil.move(dp, os.path.join(files_path, name))
+                composite_file_path = dataset.composite_file_paths[value.name]
+                stage_file(name, composite_file_path, value.is_binary)
+
+    # Do we have ad-hoc user supplied composite files.
+    elif dataset.composite_file_paths:
+        make_files_path()
+        print(dataset.composite_file_paths)
+        for key, composite_file in dataset.composite_file_paths.items():
+            stage_file(key, composite_file)  # TODO: replace these defaults
+
     # Move the dataset to its "real" path
-    shutil.move(dataset.primary_file, output_path)
+    primary_file_path, _ = to_path(dataset.primary_file)
+    shutil.move(primary_file_path, output_path)
+
     # Write the job info
     return dict(type='dataset',
                 dataset_id=dataset.dataset_id,
