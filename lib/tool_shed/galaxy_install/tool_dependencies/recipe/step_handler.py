@@ -73,7 +73,7 @@ class Download(object):
 
         if extract:
             if tarfile.is_tarfile(file_path) or (zipfile.is_zipfile(file_path) and not file_path.endswith('.jar')):
-                archive = CompressedFile(file_path)
+                archive = CompressedFile(file_path, safe=False)
                 extraction_path = archive.extract(install_dir)
             else:
                 extraction_path = os.path.abspath(install_dir)
@@ -1479,7 +1479,7 @@ class SetupPythonEnvironment(Download, RecipeStep):
                     else:
                         # pypi support is currently not working - pip can not install wheels into user specified directories
                         pass
-                    archive = CompressedFile(package_to_install)
+                    archive = CompressedFile(package_to_install, safe=False)
                     uncompressed_path = archive.extract(work_dir)
                     cmd = r'''PATH=$PYTHONHOME/bin:$PATH; export PATH;
                             mkdir -p $INSTALL_DIR/lib/python;

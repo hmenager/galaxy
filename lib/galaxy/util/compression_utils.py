@@ -12,6 +12,7 @@ from .checkers import (
     is_bz2,
     is_gzip
 )
+from galaxy.util.path import safe_contains
 
 log = logging.getLogger(__name__)
 
@@ -64,7 +65,8 @@ def get_fileobj_raw(filename, mode="r", compressed_formats=None):
 
 class CompressedFile(object):
 
-    def __init__(self, file_path, mode='r'):
+    def __init__(self, file_path, mode='r', safe=True):
+        self.safe = safe
         if tarfile.is_tarfile(file_path):
             self.file_type = 'tar'
         elif zipfile.is_zipfile(file_path) and not file_path.endswith('.jar'):
@@ -90,7 +92,7 @@ class CompressedFile(object):
                 extraction_path = os.path.join(path, self.file_name)
                 if not os.path.exists(extraction_path):
                     os.makedirs(extraction_path)
-                self.archive.extractall(extraction_path)
+                self.archive.extractall(extraction_path, members=self.members(extraction_path))
         else:
             # Get the common prefix for all the files in the archive. If the common prefix ends with a slash,
             # or self.isdir() returns True, the archive contains a single directory with the desired contents.
@@ -103,7 +105,7 @@ class CompressedFile(object):
                 extraction_path = os.path.join(path, self.file_name)
                 if not os.path.exists(extraction_path):
                     os.makedirs(extraction_path)
-            self.archive.extractall(extraction_path)
+            self.archive.extractall(extraction_path, members=self.members(extraction_path))
         # Since .zip files store unix permissions separately, we need to iterate through the zip file
         # and set permissions on extracted members.
         if self.file_type == 'zip':
@@ -119,6 +121,23 @@ class CompressedFile(object):
                     else:
                         log.warning("Unable to change permission on extracted file '%s' as it does not exist" % absolute_filepath)
         return os.path.abspath(os.path.join(extraction_path, common_prefix))
+
+    def members(self, extraction_path):
+        if self.safe:
+            return self.safemembers(extraction_path, self.archive)
+        else:
+            return None
+
+    def safemembers(self, target_path, members):
+        for finfo in members:
+            if not safe_contains(target_path, finfo.name):
+                raise Exception(finfo.name + " is blocked (illegal path).")
+            elif finfo.issym():
+                raise Exception(finfo.name + " is blocked.")
+            elif finfo.islnk():
+                raise Exception(finfo.name + " is blocked.")
+            else:
+                yield finfo
 
     def getmembers_tar(self):
         return self.archive.getmembers()
