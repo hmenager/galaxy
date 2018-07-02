@@ -1879,7 +1879,7 @@ class Tool(Dictifiable):
         tool_dict['panel_section_id'], tool_dict['panel_section_name'] = self.get_panel_section()
 
         tool_class = self.__class__
-        regular_form = tool_class == Tool or isinstance(self, DatabaseOperationTool) or tool_class == CwlTool
+        regular_form = tool_class == Tool or isinstance(self, DatabaseOperationTool) or tool_class == CwlTool or tool_class == GalacticCwlTool
         tool_dict["form_style"] = "regular" if regular_form else "special"
 
         return tool_dict
