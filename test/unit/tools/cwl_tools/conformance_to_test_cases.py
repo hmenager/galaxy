@@ -42,6 +42,11 @@ RED_TESTS = {
     "wf_scatter_nested_crossproduct_firstempty": "not implemented",
     "wf_scatter_flat_crossproduct_oneempty": "#main reference",
     "step_input_default_value_nosource": "invalid location not step_input://",
+    "step_input_default_value": "invalid location again",
+    "step_input_default_value_nullsource": "invalid location again",
+    "wf_simple": "problem with Step with id WorkflowStep[index=1,type=parameter_input,label=reverse_sort] not found in inputs_step_id ({4: <galaxy.model.HistoryDatasetAssociation object at 0x110f79b90>})",
+    "hints_unknown_ignored": "KeyError: 'http://example.com/BlibberBlubberFakeRequirement'",
+    "initial_workdir_secondary_files_expr": "WorkflowException: Missing required secondary file 'a5c68fa5d9c04cb2f393de3ff41886497fe220c06edfaa33c52115138893587e on data 2 and data 3.idx1' from file objec"
 }
 
 
