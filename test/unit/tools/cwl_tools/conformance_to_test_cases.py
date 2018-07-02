@@ -29,6 +29,11 @@ ${cwl_test_def}
         self.cwl_populator.run_conformance_test("""${version}""", """${doc}""")
 ''')
 
+RED_TESTS = {
+    "cl_basic_generation": "resource allocation mapping not implemented",
+}
+
+
 GREEN_TESTS = [
         "170",
         "cl_gen_arrayofarrays",
@@ -59,7 +64,17 @@ GREEN_TESTS = [
         "stdout_redirect_mediumcut_docker",
         "stdout_redirect_shortcut_docker",
         "writable_stagedfiles",
-    ]
+]
+
+GREEN_TESTS += [
+    "cl_optional_inputs_missing",
+    "cl_optional_bindings_provided",
+    "initworkdir_expreng_requirements",
+    "nested_cl_bindings",
+    "nested_prefixes_arrays",
+    "stderr_redirect",
+]
+
 
 def main():
     version = "v1.0"
