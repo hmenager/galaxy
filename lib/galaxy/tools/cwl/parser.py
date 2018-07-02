@@ -45,6 +45,7 @@ SUPPORTED_TOOL_REQUIREMENTS = [
     "EnvVarRequirement",
     "InitialWorkDirRequirement",
     "InlineJavascriptRequirement",
+    "ResourceRequirement",
     "ShellCommandRequirement",
     "ScatterFeatureRequirement",
     "SchemaDefRequirement",
