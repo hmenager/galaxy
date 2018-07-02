@@ -2227,8 +2227,8 @@ class FieldTypeToolParameter(ToolParameter):
         if value is None:
             return None
 
-        assert isinstance(value, dict)
-        assert "src" in value
+        if not isinstance(value, dict) or "src" not in value:
+            value = {"src": "json", "value": value}
         return self.to_python(value, trans.app)
 
     def to_json(self, value, app, use_security):
