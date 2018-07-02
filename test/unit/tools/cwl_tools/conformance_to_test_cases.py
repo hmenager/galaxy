@@ -31,6 +31,17 @@ ${cwl_test_def}
 
 RED_TESTS = {
     "cl_basic_generation": "resource allocation mapping not implemented",
+    "any_outputSource_compatibility": "Failed to find output with label [output2] in [{u'inputs': {}, u'update_time': u'2018-07-02T07:10:59.495233', u'uuid': u'1224d917-7dc7-11e8-bb8b-acde48001122', u'outputs': {}, u'history_id': u'529fd61ab1c6cc36', u'workflow_id': u'adb5f5c93f827949', u'output_collections': {}, u'state': u'scheduled', u'steps': [{u'workflow_step_label': u'input1', u'update_time': u'2018-07-02T07:10:59.499156', u'job_id': None, u'state': u'scheduled', u'workflow_step_uuid': u'a5e07f7c-d0fe-4d6d-b9cc-0657a60dbd1a', u'order_index': 0, u'action': None, u'model_class': u'WorkflowInvocationStep', u'workflow_step_id': u'adb5f5c93f827949', u'id': u'adb5f5c93f827949'}, {u'workflow_step_label': u'input2', u'update_time': u'2018-07-02T07:10:59.499750', u'job_id': None, u'state': u'scheduled', u'workflow_step_uuid': u'd7765669-6da5-4609-9f0e-a1d7f122775c', u'order_index': 1, u'action': None, u'model_class': u'WorkflowInvocationStep', u'workflow_step_id': u'529fd61ab1c6cc36', u'id': u'529fd61ab1c6cc36'}, {u'workflow_step_label': u'input3', u'update_time': u'2018-07-02T07:10:59.499996', u'job_id': None, u'state': u'scheduled', u'workflow_step_uuid': u'5c62060e-acd6-4ceb-a316-f58ad1dc6a3d', u'order_index': 2, u'action': None, u'model_class': u'WorkflowInvocationStep', u'workflow_step_id': u'd9abeb98649a6a7e', u'id': u'd9abeb98649a6a7e'}], u'model_class': u'WorkflowInvocation', u'id': u'adb5f5c93f827949'}",
+    "wf_wc_scatter_multiple_merge": "AttributeError: 'EphemeralCollection' object has no attribute '_sa_instance_state'",
+    "wf_wc_scatter_multiple_flattened": "EphemeralCollection no attribute",
+    "wf_input_default_missing": "AttributeError: 'dict' object has no attribute 'datatype'",
+    "wf_scatter_two_nested_crossproduct": "cross product not implemented",
+    "wf_scatter_two_dotproduct": "AssertionError: Unimplemented scatter type [flat_crossproduct]"
+    "wf_scatter_emptylist": "Hangs...",
+    "wf_scatter_nested_crossproduct_secondempty": "not implemented",
+    "wf_scatter_nested_crossproduct_firstempty": "not implemented",
+    "wf_scatter_flat_crossproduct_oneempty": "#main reference",
+    "wf_scatter_dotproduct_twoempty": "#main reference"
 }
 
 
@@ -67,12 +78,29 @@ GREEN_TESTS = [
 ]
 
 GREEN_TESTS += [
+    "any_input_param",
     "cl_optional_inputs_missing",
     "cl_optional_bindings_provided",
+    "expression_any_string",
+    "expression_any_nodefaultany",
+    "expression_any_null_nodefaultany",
+    "expression_any_nullstring_nodefaultany",
     "initworkdir_expreng_requirements",
     "nested_cl_bindings",
     "nested_prefixes_arrays",
+    "nested_workflow",
+    "requirement_priority",
+    "requirement_override_hints",
+    "requirement_workflow_steps",  # Diddn't implement this, how does it work?
     "stderr_redirect",
+    "stderr_redirect_shortcut",
+    "stderr_redirect_mediumcut",
+    "wf_default_tool_default",
+    "wf_input_default_provided",
+    "wf_wc_expressiontool",
+    "wf_wc_parseInt",
+    "wf_wc_scatter",
+    "wf_wc_nomultiple",
 ]
 
 
