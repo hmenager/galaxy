@@ -37,7 +37,6 @@ RED_TESTS = {
     "wf_input_default_missing": "AttributeError: 'dict' object has no attribute 'datatype'",
     "wf_scatter_two_nested_crossproduct": "cross product not implemented",
     "wf_scatter_two_dotproduct": "AssertionError: Unimplemented scatter type [flat_crossproduct]",
-    "wf_scatter_emptylist": "Hangs...",
     "wf_scatter_nested_crossproduct_secondempty": "not implemented",
     "wf_scatter_nested_crossproduct_firstempty": "not implemented",
     "wf_scatter_flat_crossproduct_oneempty": "#main reference",
@@ -47,7 +46,11 @@ RED_TESTS = {
     "wf_simple": "problem with Step with id WorkflowStep[index=1,type=parameter_input,label=reverse_sort] not found in inputs_step_id ({4: <galaxy.model.HistoryDatasetAssociation object at 0x110f79b90>})",
     "hints_unknown_ignored": "KeyError: 'http://example.com/BlibberBlubberFakeRequirement'",
     "initial_workdir_secondary_files_expr": "WorkflowException: Missing required secondary file 'a5c68fa5d9c04cb2f393de3ff41886497fe220c06edfaa33c52115138893587e on data 2 and data 3.idx1' from file objec",
-    "schemadef_req_tool_param": "AssertionError: HelloType???"
+    "schemadef_req_tool_param": "AssertionError: HelloType???",
+    "schemadef_req_wf_param": "AssertionError: HelloType???",
+    "param_evaluation_noexpr": """File "/Users/john/workspace/galaxy/lib/galaxy/tools/cwl/runtime_actions.py", line 191, in handle_known_output
+    if output["class"] == "File":
+TypeError: 'bool' object has no attribute '__getitem__'""",
 }
 
 
@@ -84,6 +87,8 @@ GREEN_TESTS = [
 ]
 
 GREEN_TESTS += [
+    "166",
+    "167",
     "any_input_param",
     "cl_optional_inputs_missing",
     "cl_optional_bindings_provided",
@@ -107,6 +112,7 @@ GREEN_TESTS += [
     "wf_wc_expressiontool",
     "wf_wc_parseInt",
     "wf_wc_scatter",
+    "wf_scatter_emptylist",
     "wf_wc_nomultiple",
 ]
 
