@@ -297,7 +297,7 @@ class WorkflowModule(object):
             assert scatter_type in ["dotproduct", "disabled"], "Unimplemented scatter type [%s]" % scatter_type
 
             workflow_mapping_structure = progress.workflow_mapping_structure
-            if workflow_mapping_structure.is_leaf and scatter_type == "disabled":
+            if workflow_mapping_structure and workflow_mapping_structure.is_leaf and scatter_type == "disabled":
                 continue
 
             data = progress.replacement_for_input(step, input_dict)
@@ -306,7 +306,7 @@ class WorkflowModule(object):
             if not can_map_over:
                 continue
 
-            if not workflow_mapping_structure.is_leaf:
+            if workflow_mapping_structure and not workflow_mapping_structure.is_leaf:
                 # TODO: replace assert with a proper exception
                 if not workflow_mapping_structure.collection_type_description.is_subcollection_of_type(
                     data.collection.collection_type, proper=False
