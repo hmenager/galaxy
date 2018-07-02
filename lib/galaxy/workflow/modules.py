@@ -1087,8 +1087,10 @@ class ToolModule(WorkflowModule):
                 return value
 
         def from_cwl(value):
+            # TODO: turn actual files into HDAs here ... somehow I suppose. Things with
+            # file:// locations for instance.
             if isinstance(value, dict) and "class" in value and "location" in value:
-                assert value["location"].startswith("step_input://")
+                assert value["location"].startswith("step_input://"), "Invalid location %s" % value
                 return hda_references[int(value["location"][len("step_input://"):]) - 1]
             elif isinstance(value, dict):
                 raise NotImplementedError()

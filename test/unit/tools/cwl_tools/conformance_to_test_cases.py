@@ -41,6 +41,7 @@ RED_TESTS = {
     "wf_scatter_nested_crossproduct_secondempty": "not implemented",
     "wf_scatter_nested_crossproduct_firstempty": "not implemented",
     "wf_scatter_flat_crossproduct_oneempty": "#main reference",
+    "step_input_default_value_nosource": "invalid location not step_input://",
 }
 
 
