@@ -36,12 +36,11 @@ RED_TESTS = {
     "wf_wc_scatter_multiple_flattened": "EphemeralCollection no attribute",
     "wf_input_default_missing": "AttributeError: 'dict' object has no attribute 'datatype'",
     "wf_scatter_two_nested_crossproduct": "cross product not implemented",
-    "wf_scatter_two_dotproduct": "AssertionError: Unimplemented scatter type [flat_crossproduct]"
+    "wf_scatter_two_dotproduct": "AssertionError: Unimplemented scatter type [flat_crossproduct]",
     "wf_scatter_emptylist": "Hangs...",
     "wf_scatter_nested_crossproduct_secondempty": "not implemented",
     "wf_scatter_nested_crossproduct_firstempty": "not implemented",
     "wf_scatter_flat_crossproduct_oneempty": "#main reference",
-    "wf_scatter_dotproduct_twoempty": "#main reference"
 }
 
 
@@ -91,12 +90,13 @@ GREEN_TESTS += [
     "nested_workflow",
     "requirement_priority",
     "requirement_override_hints",
-    "requirement_workflow_steps",  # Diddn't implement this, how does it work?
+    "requirement_workflow_steps",
     "stderr_redirect",
     "stderr_redirect_shortcut",
     "stderr_redirect_mediumcut",
     "wf_default_tool_default",
     "wf_input_default_provided",
+    "wf_scatter_dotproduct_twoempty",
     "wf_wc_expressiontool",
     "wf_wc_parseInt",
     "wf_wc_scatter",
