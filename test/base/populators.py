@@ -351,8 +351,9 @@ class CwlPopulator(object):
                     representation = yaml.load(f)
                     if "id" not in representation:
                         representation["id"] = os.path.splitext(os.path.basename(tool_id))[0]
+                        tool_directory = os.path.abspath(os.path.dirname(tool_id))
 
-                    dynamic_tool = self.dataset_populator.create_tool(representation)
+                    dynamic_tool = self.dataset_populator.create_tool(representation, tool_directory=tool_directory)
                     tool_id = dynamic_tool["tool_id"]
                     tool_hash = dynamic_tool["tool_hash"]
                     assert tool_id, dynamic_tool
@@ -534,11 +535,12 @@ class BaseDatasetPopulator(object):
     def cancel_job(self, job_id):
         return self._delete("jobs/%s" % job_id)
 
-    def create_tool(self, representation):
+    def create_tool(self, representation, tool_directory=None):
         if isinstance(representation, dict):
             representation = json.dumps(representation)
         payload = dict(
             representation=representation,
+            tool_directory=tool_directory,
         )
         try:
             create_response = self._post("dynamic_tools", data=payload, admin=True)

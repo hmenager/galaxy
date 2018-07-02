@@ -57,22 +57,25 @@ SUPPORTED_WORKFLOW_REQUIREMENTS = SUPPORTED_TOOL_REQUIREMENTS + [
 ]
 
 
-def tool_proxy(tool_path=None, tool_object=None, strict_cwl_validation=True):
+def tool_proxy(tool_path=None, tool_object=None, strict_cwl_validation=True, tool_directory=None):
     """ Provide a proxy object to cwltool data structures to just
     grab relevant data.
     """
     ensure_cwltool_available()
+    if tool_directory is None:
+        raise Exception("Moo")
     tool = to_cwl_tool_object(
         tool_path=tool_path,
         tool_object=tool_object,
-        strict_cwl_validation=strict_cwl_validation
+        strict_cwl_validation=strict_cwl_validation,
+        tool_directory=tool_directory,
     )
     return tool
 
 
-def tool_proxy_from_persistent_representation(persisted_tool, strict_cwl_validation=True):
+def tool_proxy_from_persistent_representation(persisted_tool, strict_cwl_validation=True, tool_directory=None):
     ensure_cwltool_available()
-    tool = to_cwl_tool_object(persisted_tool=persisted_tool, strict_cwl_validation=strict_cwl_validation)
+    tool = to_cwl_tool_object(persisted_tool=persisted_tool, strict_cwl_validation=strict_cwl_validation, tool_directory=tool_directory)
     return tool
 
 
@@ -99,7 +102,7 @@ def load_job_proxy(job_directory, strict_cwl_validation=True):
     return cwl_job
 
 
-def to_cwl_tool_object(tool_path=None, tool_object=None, persisted_tool=None, strict_cwl_validation=True):
+def to_cwl_tool_object(tool_path=None, tool_object=None, persisted_tool=None, strict_cwl_validation=True, tool_directory=None):
     schema_loader = _schema_loader(strict_cwl_validation)
     if tool_path is not None:
         cwl_tool = schema_loader.tool(
@@ -113,7 +116,10 @@ def to_cwl_tool_object(tool_path=None, tool_object=None, persisted_tool=None, st
         tool_object = ryaml.round_trip_load(as_str)
         from schema_salad import sourceline
         from schema_salad.ref_resolver import file_uri
-        uri = file_uri(os.getcwd()) + "/"
+        path = tool_directory
+        if path is None:
+            path = os.getcwd()
+        uri = file_uri(path) + "/"
         sourceline.add_lc_filename(tool_object, uri)
         tool_object, _ = schema_loader.raw_document_loader.resolve_all(tool_object, uri)
         raw_process_reference = schema_loader.raw_process_reference_for_object(

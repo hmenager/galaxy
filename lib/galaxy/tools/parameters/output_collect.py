@@ -881,6 +881,7 @@ class JsonCollectedDatasetMatch(object):
     def object_id(self):
         return self.as_dict.get("object_id", None)
 
+    @property
     def cwl_filename(self):
         return self.as_dict.get("cwl_filename")
 

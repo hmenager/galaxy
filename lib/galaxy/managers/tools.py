@@ -71,6 +71,7 @@ class DynamicToolManager(ModelManager):
             uuid = None
             tool_id = representation.get("id", None)
             tool_version = representation.get("version", None)
+            tool_directory = tool_payload.get("tool_directory", None)
             if "pickle" in representation:
                 # It has already been proxies and pickled - just take the tool
                 # hash.
@@ -78,7 +79,7 @@ class DynamicToolManager(ModelManager):
             else:
                 # Else - build a tool proxy so that we can convert to the presistable
                 # hash.
-                proxy = tool_proxy(tool_object=representation)
+                proxy = tool_proxy(tool_object=representation, tool_directory=tool_directory)
                 id_proxy = tool_proxy_from_persistent_representation(proxy.to_persistent_representation())
                 tool_hash = build_tool_hash(id_proxy.to_persistent_representation())
                 tool_id = id_proxy.galaxy_id()
@@ -98,6 +99,7 @@ class DynamicToolManager(ModelManager):
                 tool_id=tool_id,
                 tool_version=tool_version,
                 tool_hash=tool_hash,
+                tool_directory=tool_directory,
                 uuid=uuid,
                 value=value,
             )

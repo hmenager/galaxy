@@ -23,22 +23,23 @@ log = logging.getLogger(__name__)
 
 class CwlToolSource(ToolSource):
 
-    def __init__(self, tool_file=None, tool_object=None, strict_cwl_validation=True):
+    def __init__(self, tool_file=None, tool_object=None, strict_cwl_validation=True, tool_directory=None):
         self._source_path = tool_file
         self._source_object = tool_object
         self._tool_proxy = None
         self._strict_cwl_validation = strict_cwl_validation
+        self._tool_directory = tool_directory
 
     @property
     def tool_proxy(self):
         if self._tool_proxy is None:
             if self._source_path is not None:
-                self._tool_proxy = tool_proxy(self._source_path, strict_cwl_validation=self._strict_cwl_validation)
+                self._tool_proxy = tool_proxy(self._source_path, strict_cwl_validation=self._strict_cwl_validation, tool_directory=self._tool_directory)
             else:
                 if "pickle" not in self._source_object:
-                    self._tool_proxy = tool_proxy(tool_object=self._source_object, strict_cwl_validation=self._strict_cwl_validation)
+                    self._tool_proxy = tool_proxy(tool_object=self._source_object, strict_cwl_validation=self._strict_cwl_validation, tool_directory=self._tool_directory)
                 else:
-                    self._tool_proxy = tool_proxy_from_persistent_representation(self._source_object, strict_cwl_validation=self._strict_cwl_validation)
+                    self._tool_proxy = tool_proxy_from_persistent_representation(self._source_object, strict_cwl_validation=self._strict_cwl_validation, tool_directory=self._tool_directory)
         return self._tool_proxy
 
     def _get_gx_interface(self):

@@ -284,10 +284,13 @@ class ToolBox(BaseGalaxyToolBox):
     def create_dynamic_tool(self, dynamic_tool, **kwds):
         tool_format = dynamic_tool.tool_format
         tool_representation = dynamic_tool.value
-        tool_source = get_tool_source_from_representation(
+        get_source_kwds = dict(
             tool_format=tool_format,
             tool_representation=tool_representation,
         )
+        if dynamic_tool.tool_directory:
+            get_source_kwds["tool_directory"] = dynamic_tool.tool_directory
+        tool_source = get_tool_source_from_representation(**get_source_kwds)
         kwds["dynamic"] = True
         tool = self._create_tool_from_source(tool_source, **kwds)
         if dynamic_tool.tool_hash:
@@ -295,7 +298,7 @@ class ToolBox(BaseGalaxyToolBox):
         else:
             from galaxy.tools.hash import build_tool_hash
             tool.tool_hash = build_tool_hash(tool._cwl_tool_proxy.to_persistent_representation())
-            log.info(">>>\n\n\n\n tool_hash is %s" % tool.tool_hash)
+
         if not tool.id:
             tool.id = dynamic_tool.tool_id
         if not tool.name:
@@ -2420,7 +2423,13 @@ class CwlCommandBindingTool(Tool):
         cwl_stdout = cwl_job_proxy.stdout
         env = cwl_job_proxy.environment
 
-        command_line = " ".join([shellescape.quote(arg) if needs_shell_quoting(arg) else arg for arg in cwl_command_line])
+        def needs_shell_quoting_hack(arg):
+            if arg == "$GALAXY_SLOTS":
+                return False
+            else:
+                return needs_shell_quoting(arg)
+
+        command_line = " ".join([shellescape.quote(arg) if needs_shell_quoting_hack(arg) else arg for arg in cwl_command_line])
         if cwl_stdin:
             command_line += ' < "' + cwl_stdin + '"'
         if cwl_stdout:

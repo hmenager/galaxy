@@ -63,7 +63,7 @@ def ordered_load(stream):
     return yaml.load(stream, OrderedLoader)
 
 
-def get_tool_source_from_representation(tool_format, tool_representation, strict_cwl_validation=True):
+def get_tool_source_from_representation(tool_format, tool_representation, strict_cwl_validation=True, tool_directory=None):
     # TODO: PRE-MERGE - ensure strict_cwl_validation is being set on caller - ignored right now.
     # TODO: make sure whatever is consuming this method uses ordered load.
     log.info("Loading dynamic tool - this is experimental - tool may not function in future.")
@@ -72,7 +72,11 @@ def get_tool_source_from_representation(tool_format, tool_representation, strict
             tool_representation["version"] = "1.0.0"  # Don't require version for embedded tools.
         return YamlToolSource(tool_representation)
     elif tool_format in ["CommandLineTool", "ExpressionTool"]:
-        return CwlToolSource(tool_object=tool_representation, strict_cwl_validation=strict_cwl_validation)
+        return CwlToolSource(
+            tool_object=tool_representation,
+            strict_cwl_validation=strict_cwl_validation,
+            tool_directory=tool_directory
+        )
     else:
         raise Exception("Unknown tool representation format [%s]." % tool_format)
 
