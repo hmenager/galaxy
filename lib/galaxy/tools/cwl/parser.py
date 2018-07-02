@@ -47,6 +47,7 @@ SUPPORTED_TOOL_REQUIREMENTS = [
     "InlineJavascriptRequirement",
     "ShellCommandRequirement",
     "ScatterFeatureRequirement",
+    "SchemaDefRequirement",
     "SubworkflowFeatureRequirement",
     "StepInputExpressionRequirement",
     "MultipleInputFeatureRequirement",
