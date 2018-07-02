@@ -63,8 +63,6 @@ def tool_proxy(tool_path=None, tool_object=None, strict_cwl_validation=True, too
     grab relevant data.
     """
     ensure_cwltool_available()
-    if tool_directory is None:
-        raise Exception("Moo")
     tool = to_cwl_tool_object(
         tool_path=tool_path,
         tool_object=tool_object,
