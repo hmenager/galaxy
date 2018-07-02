@@ -461,6 +461,13 @@ class JobProxy(object):
             return None
 
     @property
+    def stderr(self):
+        if self.is_command_line_job:
+            return self.cwl_job().stderr
+        else:
+            return None
+
+    @property
     def environment(self):
         if self.is_command_line_job:
             return self.cwl_job().environment

@@ -2421,6 +2421,7 @@ class CwlCommandBindingTool(Tool):
         cwl_command_line = cwl_job_proxy.command_line
         cwl_stdin = cwl_job_proxy.stdin
         cwl_stdout = cwl_job_proxy.stdout
+        cwl_stderr = cwl_job_proxy.stderr
         env = cwl_job_proxy.environment
 
         def needs_shell_quoting_hack(arg):
@@ -2434,10 +2435,13 @@ class CwlCommandBindingTool(Tool):
             command_line += ' < "' + cwl_stdin + '"'
         if cwl_stdout:
             command_line += ' > "' + cwl_stdout + '"'
+        if cwl_stderr:
+            command_line += ' 2> "' + cwl_stderr + '"'
         cwl_job_state = {
             'args': cwl_command_line,
             'stdin': cwl_stdin,
             'stdout': cwl_stdout,
+            'stderr': cwl_stderr,
             'env': env,
         }
         tool_working_directory = os.path.join(local_working_directory, 'working')
