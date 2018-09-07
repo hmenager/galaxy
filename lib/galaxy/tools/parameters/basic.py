@@ -2301,6 +2301,8 @@ parameter_types = dict(
     field=FieldTypeToolParameter,
     drill_down=DrillDownSelectToolParameter
 )
+#directory=DataToolParameter
+#directory=FileToolParameter
 
 
 class RuntimeValue(object):
