@@ -317,7 +317,7 @@ class WorkflowsAPIController(BaseAPIController, UsesStoredWorkflowMixin, UsesAnn
                     raise exceptions.MessageException("You attempted to upload an empty file.")
             else:
                 raise exceptions.MessageException("Please provide a URL or file.")
-            return self.__api_import_from_archive(trans, archive_data, "uploaded file")
+            return self.__api_import_from_archive(trans, archive_data, "uploaded file", from_path=os.path.abspath(uploaded_file_name))
 
         if 'from_history_id' in payload:
             from_history_id = payload.get('from_history_id')
@@ -561,9 +561,20 @@ class WorkflowsAPIController(BaseAPIController, UsesStoredWorkflowMixin, UsesAnn
             raise exceptions.ObjectNotFound("Could not find tool with id '%s'" % id)
         return tool
 
-    def __api_import_from_archive(self, trans, archive_data, source=None):
+    def __api_import_from_archive(self, trans, archive_data, source=None, from_path=None):
         try:
             data = json.loads(archive_data)
+        except ValueError:
+
+            # hack
+            # if not json, assume the file to be a cwl workflow
+            # FIXME: don't use fmt to determine if cwl or galaxy wf, as galaxy wf use yaml fmt as well (galaxy-wf-fmt-2)
+            if from_path is not None:
+                print('{}'.format("CWL-IS: assume CWL workflow"))
+                data = {"src": "from_path", "path": from_path}
+            else:
+                raise exceptions.MessageException("The data content does not appear to be a valid workflow.")
+
         except Exception:
             raise exceptions.MessageException("The data content does not appear to be a valid workflow.")
         if not data:
