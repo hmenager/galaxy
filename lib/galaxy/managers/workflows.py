@@ -419,8 +419,9 @@ class WorkflowContentsManager(UsesAnnotations):
         for step in workflow.steps:
             step_model = None
             if step.type == 'tool':
+                assert step.tool_id or step.tool_hash
                 incoming = {}
-                tool = trans.app.toolbox.get_tool(step.tool_id, tool_version=step.tool_version)
+                tool = trans.app.toolbox.get_tool(step.tool_id, tool_version=step.tool_version, tool_hash=step.tool_hash)
                 params_to_incoming(incoming, tool.inputs, step.state.inputs, trans.app)
                 step_model = tool.to_json(trans, incoming, workflow_building_mode=workflow_building_modes.USE_HISTORY)
                 step_model['post_job_actions'] = [{

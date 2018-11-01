@@ -110,4 +110,4 @@ class DynamicToolManager(ModelManager):
         return dynamic_tool
 
     def list_tools(self, active=True):
-        return self.query().filter(active=active)
+        return self.query().filter_by(active=active)

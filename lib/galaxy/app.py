@@ -131,6 +131,16 @@ class UniverseApplication(config.ConfiguresGalaxyMixin):
         self.watchers = ConfigWatchers(self)
         self._configure_toolbox()
 
+        # initialize '_tools_by_hash' to prevent error below which occurs when 
+        # running a workflow.
+        #
+	#     File "lib/galaxy/tools/toolbox/base.py", line 435, in get_tool
+	#       tool_id = self._tools_by_hash[tool_hash].id
+	#   KeyError: u'a35be916a3ee7d4c1eefc32c9043637d2048d1df76e4279a94f7b9c9d1367555'
+	#
+	#
+        self.toolbox._init_dynamic_tools()
+
         # Load Data Manager
         self.data_managers = DataManagers(self)
         # Load the update repository manager.
