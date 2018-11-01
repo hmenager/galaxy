@@ -59,7 +59,7 @@ class UniverseApplication(config.ConfiguresGalaxyMixin):
             # configured.  The handler added here gets dumped and replaced with
             # an appropriately configured logger in configure_logging below.
             logging.basicConfig(level=logging.DEBUG)
-        log.debug("python path is: %s", ", ".join(sys.path))
+        #log.debug("python path is: %s", ", ".join(sys.path))
         self.name = 'galaxy'
         self.startup_timer = ExecutionTimer()
         self.new_installation = False

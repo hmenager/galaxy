@@ -1135,8 +1135,9 @@ class Tool(Dictifiable):
                         try:
                             possible_cases.remove(case.value)
                         except Exception:
-                            log.warning("Tool %s: a when tag has been defined for '%s (%s) --> %s', but does not appear to be selectable." %
-                                        (self.id, group.name, group.test_param.name, case.value))
+                            #log.warning("Tool %s: a when tag has been defined for '%s (%s) --> %s', but does not appear to be selectable." %
+                            #            (self.id, group.name, group.test_param.name, case.value))
+                            pass
                     for unspecified_case in possible_cases:
                         log.warning("Tool %s: a when tag has not been defined for '%s (%s) --> %s', assuming empty inputs." %
                                     (self.id, group.name, group.test_param.name, unspecified_case))

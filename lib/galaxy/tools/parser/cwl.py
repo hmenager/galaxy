@@ -124,7 +124,7 @@ class CwlToolSource(ToolSource):
         if gx_interface is None:
             page_source = CwlPageSource(self.tool_proxy)
         else:
-            print(gx_interface)
+            #print(gx_interface)
             page_source = YamlPageSource(gx_interface["inputs"])
         return PagesSource([page_source])
 

@@ -136,9 +136,11 @@
     <tool file="maf/vcf_to_maf_customtrack.xml" />
   </section>
   <section id="hgv" name="Phenotype Association">
+    <!--
     <tool file="evolution/codingSnps.xml" />
     <tool file="evolution/add_scores.xml" />
     <tool file="phenotype_association/sift.xml" />
+    -->
     <tool file="phenotype_association/linkToGProfile.xml" />
     <tool file="phenotype_association/linkToDavid.xml" />
     <tool file="phenotype_association/ldtools.xml" />
