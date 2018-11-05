@@ -12,6 +12,8 @@ from galaxy.model.custom_types import JSONType
 log = logging.getLogger(__name__)
 metadata = MetaData()
 
+from_path_column = Column("from_path", Integer, nullable=True)
+
 
 def get_new_tables():
 
@@ -75,6 +77,8 @@ def upgrade(migrate_engine):
 
     migrate_engine.execute(insert_step_connections_cmd)
 
+    __add_column(from_path_column, "stored_workflow", metadata)
+
 
 def downgrade(migrate_engine):
     metadata.bind = migrate_engine
@@ -89,6 +93,24 @@ def downgrade(migrate_engine):
     # Drop new workflow invocation step and job association table and restore legacy data.
     LegacyWorkflowStepConnection_table = Table("workflow_step_connection_premigrate144", metadata, autoload=True)
     LegacyWorkflowStepConnection_table.rename("workflow_step_connection")
+
+    __drop_column(from_path_column, "stored_workflow", metadata)
+
+
+def __add_column(column, table_name, metadata, **kwds):
+    try:
+        table = Table(table_name, metadata, autoload=True)
+        column.create(table, **kwds)
+    except Exception:
+        log.exception("Adding column %s failed.", column)
+
+
+def __drop_column(column_name, table_name, metadata):
+    try:
+        table = Table(table_name, metadata, autoload=True)
+        getattr(table.c, column_name).drop()
+    except Exception:
+        log.exception("Dropping column %s failed.", column_name)
 
 
 def __create(table):
