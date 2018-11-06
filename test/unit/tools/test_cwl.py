@@ -185,6 +185,17 @@ def test_workflow_scatter():
     assert len(wc_step["workflow_outputs"]) == 1
 
 
+def test_workflow_outputs_of_inputs():
+    version = "v1.0"
+    proxy = workflow_proxy(_cwl_tool_path("%s/any-type-compat.cwl" % version))
+
+    galaxy_workflow_dict = proxy.to_dict()
+    assert len(galaxy_workflow_dict["steps"]) == 3
+    input_step = galaxy_workflow_dict["steps"][0]
+
+    assert len(input_step["workflow_outputs"]) == 1
+
+
 def test_workflow_scatter_multiple_input():
     version = "v1.0"
     proxy = workflow_proxy(_cwl_tool_path("%s/count-lines4-wf.cwl" % version))

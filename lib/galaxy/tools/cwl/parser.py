@@ -596,6 +596,27 @@ class WorkflowProxy(object):
     def cwl_id(self):
         return self._workflow.tool["id"]
 
+    def get_outputs_for_label(self, label):
+        outputs = []
+        for output in self._workflow.tool['outputs']:
+            step, output_name = split_step_references(
+                output["outputSource"],
+                multiple=False,
+                workflow_id=self.cwl_id,
+            )
+            if step == label:
+                output_id = output["id"]
+                if "#" not in self.cwl_id:
+                    _, output_label = output_id.rsplit("#", 1)
+                else:
+                    _, output_label = output_id.rsplit("/", 1)
+
+                outputs.append({
+                    "output_name": output_name,
+                    "label": output_label,
+                })
+        return outputs
+
     def tool_references(self):
         """Fetch tool source definitions for all referenced tools."""
         references = []
@@ -710,12 +731,14 @@ class WorkflowProxy(object):
 
     def cwl_input_to_galaxy_step(self, input, i):
         input_type = input["type"]
+        label = self.jsonld_id_to_label(input["id"])
         input_as_dict = {
             "id": i,
-            "label": self.jsonld_id_to_label(input["id"]),
+            "label": label,
             "position": {"left": 0, "top": 0},
             "annotation": self.cwl_object_to_annotation(input),
             "input_connections": {},  # Should the Galaxy API really require this? - Seems to.
+            "workflow_outputs": self.get_outputs_for_label(label),
         }
 
         if input_type == "File" and "default" not in input:
@@ -833,25 +856,7 @@ class BaseStepProxy(object):
         return label
 
     def galaxy_workflow_outputs_list(self):
-        outputs = []
-        for output in self._workflow_proxy._workflow.tool['outputs']:
-            step, output_name = split_step_references(
-                output["outputSource"],
-                multiple=False,
-                workflow_id=self._workflow_proxy.cwl_id,
-            )
-            if step == self.label:
-                output_id = output["id"]
-                if "#" not in self._workflow_proxy.cwl_id:
-                    _, output_label = output_id.rsplit("#", 1)
-                else:
-                    _, output_label = output_id.rsplit("/", 1)
-
-                outputs.append({
-                    "output_name": output_name,
-                    "label": output_label,
-                })
-        return outputs
+        return self._workflow_proxy.get_outputs_for_label(self.label)
 
     @property
     def cwl_tool_object(self):
