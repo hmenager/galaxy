@@ -247,7 +247,6 @@ def galactic_flavored_to_cwl_job(tool, param_dict, local_working_directory):
         else:
             return str(param_dict_value)
 
-
     inputs_dir = os.path.join(local_working_directory, "_inputs")
 
     inputs = {}

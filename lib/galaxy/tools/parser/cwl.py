@@ -19,6 +19,8 @@ from .yaml import YamlInputSource, YamlPageSource
 
 GX_INTERFACE_NAMESPACE = "http://galaxyproject.org/cwl#interface"
 
+CWL_DEFAULT_FILE_OUTPUT = "data"  # set to _sniff_ to sniff output types automatically.
+
 log = logging.getLogger(__name__)
 
 
@@ -158,7 +160,7 @@ class CwlToolSource(ToolSource):
         # TODO: handle filters, actions, change_format
         output = ToolOutput(name)
         if "File" in output_instance.output_data_type:
-            output.format = "data"
+            output.format = CWL_DEFAULT_FILE_OUTPUT
         elif "Directory" in output_instance.output_data_type:
             output.format = "directory"
         else:
