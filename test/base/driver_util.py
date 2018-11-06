@@ -189,11 +189,13 @@ def setup_galaxy_config(
     config = dict(
         admin_users='test@bx.psu.edu',
         allow_library_path_paste=True,
+        allow_path_paste=True,
         allow_user_creation=True,
         allow_user_deletion=True,
         api_allow_run_as='test@bx.psu.edu',
         auto_configure_logging=logging_config_file is None,
         check_migrate_tools=False,
+        check_upload_content=False,
         chunk_upload_size=100,
         conda_prefix=conda_prefix,
         conda_auto_init=conda_auto_init,

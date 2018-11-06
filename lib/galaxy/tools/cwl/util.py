@@ -231,7 +231,7 @@ def galactic_job_json(
     def replacement_record(value):
         collection_element_identifiers = []
         for record_key, record_value in value.items():
-            if record_value.get("class") != "File":
+            if not isinstance(record_value, dict) or record_value.get("class") != "File":
                 dataset = replacement_item(record_value, force_to_file=True)
                 collection_element = dataset.copy()
             else:
