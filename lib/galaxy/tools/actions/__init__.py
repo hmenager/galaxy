@@ -77,7 +77,9 @@ class DefaultToolAction(object):
         def visitor(input, value, prefix, parent=None, **kwargs):
 
             def process_dataset(data, formats=None):
-                if not data or isinstance(data, RuntimeValue):
+                # default file coming from a workflow
+                is_workflow_default = isinstance(data, dict) and data.get("class") == "File"
+                if not data or isinstance(data, RuntimeValue) or is_workflow_default:
                     return None
                 if formats is None:
                     formats = input.formats

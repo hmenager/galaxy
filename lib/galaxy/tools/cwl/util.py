@@ -69,6 +69,14 @@ def abs_path_or_uri(path_or_uri, relative_to):
     return path_or_uri
 
 
+def abs_path(path_or_uri, relative_to):
+    path_or_uri = abs_path_or_uri(path_or_uri, relative_to)
+    if path_or_uri.startswith("file://"):
+        path_or_uri = path_or_uri[len("file://"):]
+
+    return path_or_uri
+
+
 def path_or_uri_to_uri(path_or_uri):
     if "://" not in path_or_uri:
         return "file://%s" % path_or_uri

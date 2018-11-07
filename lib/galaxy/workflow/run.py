@@ -1,4 +1,5 @@
 import logging
+import os
 import uuid
 
 from galaxy import model
@@ -290,6 +291,10 @@ class WorkflowProgress(object):
         else:
             return None
 
+    @property
+    def trans(self):
+        return self.module_injector.trans
+
     def record_executed_job_count(self, job_count):
         self.jobs_scheduled_this_iteration += job_count
 
@@ -517,6 +522,46 @@ class WorkflowProgress(object):
             elif step_id in self.inputs_by_step_id:
                 outputs['output'] = self.inputs_by_step_id[step_id]
 
+        output = outputs.get('output')
+        # TODO: handle extra files and directory types and collections and all the stuff...
+        if output and isinstance(output, dict) and output.get("class") == "File":
+            trans = self.trans
+            app = trans.app
+            history = self.workflow_invocation.history
+
+            from galaxy.tools.cwl.util import abs_path
+            log.info(output)
+            relative_to = "/"  # TODO
+            path = abs_path(output.get("location"), relative_to)
+
+            name = os.path.basename(path)
+            primary_data = model.HistoryDatasetAssociation(
+                name=name,
+                extension="data",  # TODO: cwl default...
+                designation=None,
+                visible=True,
+                dbkey="?",
+                create_dataset=True,
+                flush=False,
+                sa_session=trans.sa_session
+            )
+            log.info("path is %s" % path)
+            primary_data.link_to(path)
+            permissions = app.security_agent.history_get_default_permissions(history)
+            app.security_agent.set_all_dataset_permissions(primary_data.dataset, permissions, new=True, flush=False)
+            trans.sa_session.add(primary_data)
+            trans.sa_session.flush()
+            history.add_dataset(primary_data)
+            primary_data.init_meta()
+            primary_data.set_meta()
+            primary_data.set_peek()
+            primary_data.raw_set_dataset_state('ok')
+            trans.sa_session.flush()
+            # TODO: metadata???
+            outputs['output'] = primary_data
+
+        log.info("outputs are")
+        log.info(outputs)
         self.set_step_outputs(invocation_step, outputs)
 
     def set_step_outputs(self, invocation_step, outputs, already_persisted=False):
