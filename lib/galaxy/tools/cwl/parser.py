@@ -154,10 +154,10 @@ def to_cwl_tool_object(tool_path=None, tool_object=None, cwl_tool_object=None, r
     # between Galaxy and cwltool.
     _hack_cwl_requirements(cwl_tool)
     check_requirements(raw_tool)
-    return cwl_tool_object_to_proxy(cwl_tool, raw_process_reference, tool_path=tool_path)
+    return cwl_tool_object_to_proxy(cwl_tool, raw_process_reference=raw_process_reference, tool_path=tool_path)
 
 
-def cwl_tool_object_to_proxy(cwl_tool, raw_process_reference, tool_path=None):
+def cwl_tool_object_to_proxy(cwl_tool, raw_process_reference=None, tool_path=None):
     raw_tool = cwl_tool.tool
     if "class" not in raw_tool:
         raise Exception("File does not declare a class, not a valid Draft 3+ CWL tool.")
