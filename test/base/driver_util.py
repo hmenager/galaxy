@@ -231,6 +231,7 @@ def setup_galaxy_config(
         webhooks_dir=TEST_WEBHOOKS_DIR,
         logging=LOGGING_CONFIG_DEFAULT,
         monitor_thread_join_timeout=5,
+        strict_cwl_validation=False,
     )
     config.update(database_conf(tmpdir, prefer_template_database=prefer_template_database))
     config.update(install_database_conf(tmpdir, default_merged=default_install_db_merged))

@@ -9,7 +9,7 @@ from unittest import TestCase
 import galaxy.model
 
 from galaxy.tools.cwl import tool_proxy
-from galaxy.tools.cwl.parser import ToolProxy
+from galaxy.tools.cwl.parser import ToolProxy, tool_proxy_from_persistent_representation, to_cwl_tool_object
 from galaxy.tools.cwl import workflow_proxy
 from galaxy.tools.cwl.representation import USE_FIELD_TYPES
 
@@ -49,8 +49,24 @@ def test_tool_source_records():
 
 
 def test_serialize_deserialize():
-    tool = tool_proxy(_cwl_tool_path("v1.0/cat1-testcli.cwl"))
-    ToolProxy.from_persistent_representation(tool.to_persistent_representation())
+    path = _cwl_tool_path("v1.0/cat5-tool.cwl")
+    tool = tool_proxy(path)
+    print("before....")
+    print(tool._tool.tool)
+    print("converting to")
+    rep = tool.to_persistent_representation()
+    print("converted")
+    tool = tool_proxy_from_persistent_representation(rep)
+    print(tool)
+    tool.job_proxy({"file1": "/moo"}, {})
+    print(tool._tool.tool)
+
+    with open(path, "r") as f:
+        import yaml
+        tool_object = yaml.load(f)
+        import json
+        tool_object = json.loads(json.dumps(tool_object))
+    tool = to_cwl_tool_object(tool_object=tool_object)
 
 
 def test_serialize_deserialize_workflow_embed():

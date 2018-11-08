@@ -59,6 +59,8 @@ SUPPORTED_TOOL_REQUIREMENTS = [
 SUPPORTED_WORKFLOW_REQUIREMENTS = SUPPORTED_TOOL_REQUIREMENTS + [
 ]
 
+PERSISTED_REPRESENTATION = "cwl_tool_object"
+
 
 def tool_proxy(tool_path=None, tool_object=None, strict_cwl_validation=True, tool_directory=None):
     """ Provide a proxy object to cwltool data structures to just
@@ -76,7 +78,11 @@ def tool_proxy(tool_path=None, tool_object=None, strict_cwl_validation=True, too
 
 def tool_proxy_from_persistent_representation(persisted_tool, strict_cwl_validation=True, tool_directory=None):
     ensure_cwltool_available()
-    tool = to_cwl_tool_object(persisted_tool=persisted_tool, strict_cwl_validation=strict_cwl_validation, tool_directory=tool_directory)
+    if PERSISTED_REPRESENTATION == "cwl_tool_object":
+        kwds = {"cwl_tool_object": ToolProxy.from_persistent_representation(persisted_tool)}
+    else:
+        kwds = {"raw_process_reference": ToolProxy.from_persistent_representation(raw_process_reference)}
+    tool = to_cwl_tool_object(strict_cwl_validation=strict_cwl_validation, tool_directory=tool_directory, **kwds)
     return tool
 
 
@@ -98,18 +104,25 @@ def load_job_proxy(job_directory, strict_cwl_validation=True):
         cwl_tool = tool_proxy(tool_path, strict_cwl_validation=strict_cwl_validation)
     else:
         persisted_tool = job_objects["tool_representation"]
-        cwl_tool = tool_proxy_from_persistent_representation(persisted_tool, strict_cwl_validation=strict_cwl_validation)
+        cwl_tool = tool_proxy_from_persistent_representation(persisted_tool=persisted_tool, strict_cwl_validation=strict_cwl_validation)
     cwl_job = cwl_tool.job_proxy(job_inputs, output_dict, job_directory=job_directory)
     return cwl_job
 
 
-def to_cwl_tool_object(tool_path=None, tool_object=None, persisted_tool=None, strict_cwl_validation=True, tool_directory=None):
+def to_cwl_tool_object(tool_path=None, tool_object=None, cwl_tool_object=None, raw_process_reference=None, strict_cwl_validation=True, tool_directory=None):
     schema_loader = _schema_loader(strict_cwl_validation)
-    if tool_path is not None:
+    if raw_process_reference is None and tool_path is not None:
+        assert cwl_tool_object is None
+        assert tool_object is None
+
+        raw_process_reference = schema_loader.raw_process_reference(tool_path)
         cwl_tool = schema_loader.tool(
-            path=tool_path
+            raw_process_reference=raw_process_reference,
         )
     elif tool_object is not None:
+        assert raw_process_reference is None
+        assert cwl_tool_object is None
+
         # Allow loading tools from YAML...
         from ruamel import yaml as ryaml
         import json
@@ -122,7 +135,7 @@ def to_cwl_tool_object(tool_path=None, tool_object=None, persisted_tool=None, st
             path = os.getcwd()
         uri = file_uri(path) + "/"
         sourceline.add_lc_filename(tool_object, uri)
-        tool_object, _ = schema_loader.raw_document_loader.resolve_all(tool_object, uri)
+        # tool_object, _ = schema_loader.raw_document_loader.resolve_all(tool_object, uri, checklinks=False)
         raw_process_reference = schema_loader.raw_process_reference_for_object(
             tool_object,
             uri=uri
@@ -131,7 +144,7 @@ def to_cwl_tool_object(tool_path=None, tool_object=None, persisted_tool=None, st
             raw_process_reference=raw_process_reference,
         )
     else:
-        cwl_tool = ToolProxy.from_persistent_representation(persisted_tool)
+        cwl_tool = cwl_tool_object
 
     if isinstance(cwl_tool, int):
         raise Exception("Failed to load tool.")
@@ -141,10 +154,10 @@ def to_cwl_tool_object(tool_path=None, tool_object=None, persisted_tool=None, st
     # between Galaxy and cwltool.
     _hack_cwl_requirements(cwl_tool)
     check_requirements(raw_tool)
-    return cwl_tool_object_to_proxy(cwl_tool, tool_path=tool_path)
+    return cwl_tool_object_to_proxy(cwl_tool, raw_process_reference, tool_path=tool_path)
 
 
-def cwl_tool_object_to_proxy(cwl_tool, tool_path=None):
+def cwl_tool_object_to_proxy(cwl_tool, raw_process_reference, tool_path=None):
     raw_tool = cwl_tool.tool
     if "class" not in raw_tool:
         raise Exception("File does not declare a class, not a valid Draft 3+ CWL tool.")
@@ -160,7 +173,7 @@ def cwl_tool_object_to_proxy(cwl_tool, tool_path=None):
     if top_level_object and ("cwlVersion" not in raw_tool):
         raise Exception("File does not declare a CWL version, pre-draft 3 CWL tools are not supported.")
 
-    proxy = proxy_class(cwl_tool, tool_path)
+    proxy = proxy_class(cwl_tool, raw_process_reference, tool_path)
     return proxy
 
 
@@ -210,9 +223,10 @@ def check_requirements(rec, tool=True):
 @six.add_metaclass(ABCMeta)
 class ToolProxy(object):
 
-    def __init__(self, tool, tool_path=None):
+    def __init__(self, tool, raw_process_reference=None, tool_path=None):
         self._tool = tool
         self._tool_path = tool_path
+        self._raw_process_reference = raw_process_reference
 
     def job_proxy(self, input_dict, output_dict, job_directory="."):
         """ Build a cwltool.job.Job describing computation using a input_json
@@ -263,9 +277,15 @@ class ToolProxy(object):
         over the wire, but serialization in a database."""
         # TODO: Replace this with some more readable serialization,
         # I really don't like using pickle here.
+        # print("with removed...")
+        # print(remove_pickle_problems(self._tool).tool)
+        if PERSISTED_REPRESENTATION == "cwl_tool_object":
+            persisted_obj = remove_pickle_problems(self._tool)
+        else:
+            persisted_obj = self._raw_process_reference
         return {
             "class": self._class,
-            "pickle": base64.b64encode(pickle.dumps(remove_pickle_problems(self._tool), -1)),
+            "pickle": base64.b64encode(pickle.dumps(persisted_obj, pickle.HIGHEST_PROTOCOL)),
         }
 
     @staticmethod
@@ -275,7 +295,8 @@ class ToolProxy(object):
             raise Exception("Failed to deserialize tool proxy from JSON object - no class found.")
         if "pickle" not in as_object:
             raise Exception("Failed to deserialize tool proxy from JSON object - no pickle representation found.")
-        return pickle.loads(base64.b64decode(as_object["pickle"]))
+        to_unpickle = base64.b64decode(as_object["pickle"])
+        return pickle.loads(to_unpickle)
 
 
 class CommandLineToolProxy(ToolProxy):
@@ -929,7 +950,7 @@ class ToolStepProxy(BaseStepProxy):
 
     @property
     def tool_proxy(self):
-        return cwl_tool_object_to_proxy(self.cwl_tool_object)
+        return cwl_tool_object_to_proxy(tool_object=self.cwl_tool_object)
 
     def tool_references(self):
         # Return a list so we can handle subworkflows recursively in the future.

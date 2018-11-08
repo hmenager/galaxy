@@ -1202,7 +1202,7 @@ class ToolModule(WorkflowModule):
         else:
             raise ToolMissingException("Tool %s missing. Cannot recover runtime state." % self.tool_id)
 
-    def evaluate_value_from_expressions(self, step, execution_state):
+    def evaluate_value_from_expressions(self, progress, step, execution_state):
         value_from_expressions = {}
         replacements = {}
 
