@@ -1257,6 +1257,11 @@ class ToolModule(WorkflowModule):
             # TODO: turn actual files into HDAs here ... somehow I suppose. Things with
             # file:// locations for instance.
             if isinstance(value, dict) and "class" in value and "location" in value:
+                if value["class"] == "File":
+                    # This is going to re-file -> HDA this each iteration I think, not a good
+                    # implementation.
+                    return progress.raw_to_galaxy(value)
+
                 assert value["location"].startswith("step_input://"), "Invalid location %s" % value
                 return hda_references[int(value["location"][len("step_input://"):]) - 1]
             elif isinstance(value, dict):
@@ -1385,7 +1390,7 @@ class ToolModule(WorkflowModule):
                 log.warn("Failed to use input connections for inputs [%s]" % unmatched_input_connections)
 
             expression_replacements = self.evaluate_value_from_expressions(
-                step, execution_state
+                progress, step, execution_state
             )
 
             def expression_callback(input, prefixed_name, **kwargs):
