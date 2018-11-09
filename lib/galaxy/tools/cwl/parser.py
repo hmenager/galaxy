@@ -315,25 +315,35 @@ class CommandLineToolProxy(ToolProxy):
             return ''
 
     def input_fields(self):
-        input_records_schema = self._tool.inputs_record_schema
-        schema_type = input_records_schema["type"]
-        if schema_type in self._tool.schemaDefs:
-            input_records_schema = self._tool.schemaDefs[schema_type]
-
+        input_records_schema = self._eval_schema(self._tool.inputs_record_schema)
         if input_records_schema["type"] != "record":
             raise Exception("Unhandled CWL tool input structure")
 
-        return input_records_schema["fields"]
+        # TODO: handle this somewhere else?
+        # schemadef_req_tool_param
+        rval = []
+        for input in input_records_schema["fields"]:
+            import copy
+            input_copy = copy.deepcopy(input)
+            input_type = input.get("type")
+            if input_type in self._tool.schemaDefs:
+                input_copy["type"] = self._tool.schemaDefs[input_type]
+
+            rval.append(input_copy)
+        return rval
+
+    def _eval_schema(self, io_schema):
+        schema_type = io_schema.get("type")
+        if schema_type in self._tool.schemaDefs:
+            io_schema = self._tool.schemaDefs[schema_type]
+        return io_schema
 
     def input_instances(self):
         return [_outer_field_to_input_instance(_) for _ in self.input_fields()]
 
     def output_instances(self):
-        outputs_schema = self._tool.outputs_record_schema
-        schema_type = outputs_schema["type"]
-        if schema_type in self._tool.schemaDefs:
-            outputs_schema = self._tool.schemaDefs[schema_type]
-
+ 
+        outputs_schema = self._eval_schema(self._tool.outputs_record_schema)
         if outputs_schema["type"] != "record":
             raise Exception("Unhandled CWL tool output structure")
 

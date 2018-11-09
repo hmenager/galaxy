@@ -384,6 +384,12 @@ def test_sorttool():
     assert len(output_collections) == 0
 
 
+def test_scheadef_tool():
+    tool_path = _cwl_tool_path("v1.0/schemadef-tool.cwl")
+    tool_source = get_tool_source(tool_path)
+    _inputs(tool_source)
+
+
 def test_cat1():
     cat1_tool = _cwl_tool_path("v1.0/cat1-testcli.cwl")
     tool_source = get_tool_source(cat1_tool)
