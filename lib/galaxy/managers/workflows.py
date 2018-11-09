@@ -272,11 +272,17 @@ class WorkflowContentsManager(UsesAnnotations):
         workflow_class = as_dict.get("class", None)
         if workflow_class is None and "$graph" in as_dict:
             object_id = as_dict.get("object_id", "main")
-            target_object = as_dict["$graph"].get(object_id)
+            graph = as_dict["$graph"]
+            if isinstance(graph, dict):
+                target_object = graph.get(object_id)
+            else:
+                for item in graph:
+                    if item.get("id") == object_id:
+                        target_object = item
             if target_object and target_object.get("class"):
                 workflow_class = target_object["class"]
 
-        if workflow_class == "GalaxyWorkflow" or "$graph" in as_dict or "yaml_content" in as_dict:
+        if workflow_class == "GalaxyWorkflow" or "yaml_content" in as_dict:
             if not self.app.config.enable_beta_workflow_format:
                 raise exceptions.ConfigDoesNotAllowException("Format2 workflows not enabled.")
 

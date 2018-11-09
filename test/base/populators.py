@@ -396,9 +396,14 @@ class CwlPopulator(object):
         else:
             route = "workflows"
             path = os.path.join(tool_id)
+            object_id = None
+            if "#" in tool_id:
+                path, object_id = tool_id.split("#", 1)
             data = dict(
                 from_path=path,
             )
+            if object_id is not None:
+                data["object_id"] = object_id
             upload_response = self.dataset_populator._post(route, data=data)
             api_asserts.assert_status_code_is(upload_response, 200)
             workflow = upload_response.json()
