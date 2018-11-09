@@ -31,8 +31,6 @@ ${cwl_test_def}
 
 RED_TESTS = {
     "cl_basic_generation": "resource allocation mapping not implemented",
-    "wf_wc_scatter_multiple_merge": "AttributeError: 'EphemeralCollection' object has no attribute '_sa_instance_state'",
-    "wf_wc_scatter_multiple_flattened": "EphemeralCollection no attribute",
     "wf_scatter_two_nested_crossproduct": "cross product not implemented",
     "wf_scatter_two_dotproduct": "AssertionError: Unimplemented scatter type [flat_crossproduct]",
     "wf_scatter_nested_crossproduct_secondempty": "not implemented",
@@ -113,6 +111,8 @@ GREEN_TESTS += [
     "step_input_default_value",
     "step_input_default_value_nullsource",
     "hints_unknown_ignored",
+    "wf_wc_scatter_multiple_merge",
+    "wf_wc_scatter_multiple_flattened",
 ]
 
 
