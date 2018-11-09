@@ -1608,7 +1608,11 @@ class BaseDataToolParameter(ToolParameter):
 
     def to_json(self, value, app, use_security):
         if getattr(value, "ephemeral", False):
+            # wf_wc_scatter_multiple_flattened
             value = value.persistent_object
+            if value.id is None:
+                app.model.context.add(value)
+                app.model.context.flush()
 
         def single_to_json(value):
             src = None
