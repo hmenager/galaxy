@@ -123,6 +123,9 @@ GREEN_TESTS += [
     "wf_two_inputfiles_namecollision",
     "directory_input_docker",
     "input_file_literal",
+    "hints_import",
+    "default_path_notfound_warning",
+    "wf_compound_doc",
 ]
 
 
