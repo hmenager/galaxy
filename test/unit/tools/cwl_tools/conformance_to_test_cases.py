@@ -36,10 +36,13 @@ RED_TESTS = {
     "wf_scatter_nested_crossproduct_secondempty": "not implemented",
     "wf_scatter_nested_crossproduct_firstempty": "not implemented",
     "wf_scatter_flat_crossproduct_oneempty": "AssertionError: Unimplemented scatter type [flat_crossproduct]",
-    "initial_workdir_secondary_files_expr": "WorkflowException: Missing required secondary file 'a5c68fa5d9c04cb2f393de3ff41886497fe220c06edfaa33c52115138893587e on data 2 and data 3.idx1' from file objec",
-    "param_evaluation_noexpr": """File "/Users/john/workspace/galaxy/lib/galaxy/tools/cwl/runtime_actions.py", line 191, in handle_known_output
-    if output["class"] == "File":
-TypeError: 'bool' object has no attribute '__getitem__'""",
+    "format_checking": "format stuff not implemented",
+    "format_checking_subclass": "format stuff not implemented",
+    "format_checking_equivalentclass": "format stuff not implemented",
+    "output_secondaryfile_optional": "expected null got file of size 4 (maybe null?)",
+    "valuefrom_ignored_null": "wrong output, vf-concat.cwl with empty.json",
+    "valuefrom_wf_step": "ValidationException: [Errno 2] No such file or directory: '/Users/john/workspace/galaxy/step_input:/1'",
+    "valuefrom_wf_step_multiple": "basic.py problem ValueError: invalid literal for int() with base 10: ''",
 }
 
 
@@ -112,7 +115,11 @@ GREEN_TESTS += [
     "wf_wc_scatter_multiple_merge",
     "wf_wc_scatter_multiple_flattened",
     "schemadef_req_tool_param",
-    'schemadef_req_wf_param',
+    "schemadef_req_wf_param",
+    "param_evaluation_noexpr",
+    "initial_workdir_secondary_files_expr",
+    "param_evaluation_expr",
+    "valuefrom_secondexpr_ignored",
 ]
 
 

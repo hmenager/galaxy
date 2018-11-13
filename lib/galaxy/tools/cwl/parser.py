@@ -326,6 +326,10 @@ class CommandLineToolProxy(ToolProxy):
             import copy
             input_copy = copy.deepcopy(input)
             input_type = input.get("type")
+            if isinstance(input_type, list) or isinstance(input_type, dict):
+                rval.append(input_copy)
+                continue
+
             if input_type in self._tool.schemaDefs:
                 input_copy["type"] = self._tool.schemaDefs[input_type]
 

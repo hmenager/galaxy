@@ -41,7 +41,7 @@ def test_tool_source_records():
     record_output_path = _cwl_tool_path("v1.0/record-output.cwl")
     tool_source = get_tool_source(record_output_path)
     inputs = _inputs(tool_source)
-    assert len(inputs) == 1
+    assert len(inputs) == 1, inputs
 
     output_data, output_collections = _outputs(tool_source)
     assert len(output_data) == 1
@@ -246,7 +246,7 @@ def test_workflow_step_value_from():
     assert len(galaxy_workflow_dict["steps"]) == 3
 
     print(galaxy_workflow_dict["steps"])
-    tool_step = galaxy_workflow_dict["steps"][2]
+    tool_step = [s for s in galaxy_workflow_dict["steps"].values() if s["label"] == "step1"][0]
     assert "inputs" in tool_step
     inputs = tool_step["inputs"]
     assert len(inputs) == 1
@@ -263,7 +263,7 @@ def test_workflow_input_without_source():
     tool_step = galaxy_workflow_dict["steps"][2]
     assert "inputs" in tool_step
     inputs = tool_step["inputs"]
-    assert len(inputs) == 3
+    assert len(inputs) == 3, inputs
     assert inputs[2].get("value_from")
 
 
@@ -390,12 +390,18 @@ def test_scheadef_tool():
     _inputs(tool_source)
 
 
+def test_params_tool():
+    tool_path = _cwl_tool_path("v1.0/params.cwl")
+    tool_source = get_tool_source(tool_path)
+    _inputs(tool_source)
+
+
 def test_cat1():
     cat1_tool = _cwl_tool_path("v1.0/cat1-testcli.cwl")
     tool_source = get_tool_source(cat1_tool)
     inputs = _inputs(tool_source)
 
-    assert len(inputs) == 3
+    assert len(inputs) == 3, inputs
     file_input = inputs[0]
 
     assert file_input.parse_input_type() == "param"
