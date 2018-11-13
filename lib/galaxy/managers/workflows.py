@@ -279,8 +279,10 @@ class WorkflowContentsManager(UsesAnnotations):
                 target_object = graph.get(object_id)
             else:
                 for item in graph:
-                    if item.get("id") == object_id:
+                    found_id = item.get("id")
+                    if found_id == object_id or found_id == "#" + object_id:
                         target_object = item
+
             if target_object and target_object.get("class"):
                 workflow_class = target_object["class"]
 
@@ -324,18 +326,6 @@ class WorkflowContentsManager(UsesAnnotations):
         data = raw_workflow_description.as_dict
         # Put parameters in workflow mode
         trans.workflow_building_mode = workflow_building_modes.ENABLED
-
-        if data and "src" in data and data["src"] == "from_path":
-            from galaxy.tools.cwl import workflow_proxy
-            wf_proxy = workflow_proxy(data["path"])
-            tool_reference_proxies = wf_proxy.tool_reference_proxies()
-            for tool_reference_proxy in tool_reference_proxies:
-                # TODO: Namespace IDS in workflows.
-                representation = tool_reference_proxy.to_persistent_representation()
-                self.app.dynamic_tool_manager.create_tool({
-                    "representation": representation,
-                }, allow_load=True)
-            data = wf_proxy.to_dict()
 
         # If there's a source, put it in the workflow name.
         if source:
