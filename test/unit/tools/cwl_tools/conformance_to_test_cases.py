@@ -30,6 +30,10 @@ ${cwl_test_def}
 ''')
 
 RED_TESTS = {
+    # Required:
+    "directory_output": "regression: the `inf` field is not valid because Expected class 'File' but this is 'Directory'",
+    "expr_reference_self_noinput": ":1:1: Syntax error in parameter reference 'self.basename': self is not defined. This could be due to using Javascript code without specifying InlineJavascriptRequirement.",
+    # NON-required:
     "wf_scatter_two_nested_crossproduct": "cross product not implemented",
     "wf_scatter_two_dotproduct": "AssertionError: Unimplemented scatter type [flat_crossproduct]",
     "wf_scatter_nested_crossproduct_secondempty": "not implemented",
@@ -48,7 +52,6 @@ RED_TESTS = {
 GREEN_TESTS = [
         "170",
         "cl_gen_arrayofarrays",
-        "directory_output",
         "docker_json_output_location",
         "docker_json_output_path",
         "envvar_req",
