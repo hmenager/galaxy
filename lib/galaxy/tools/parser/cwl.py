@@ -100,16 +100,37 @@ class CwlToolSource(ToolSource):
 
     def parse_stdio(self):
         # TODO: remove duplication with YAML
-        # New format - starting out just using exit code.
-        exit_code_lower = ToolStdioExitCode()
-        exit_code_lower.range_start = float("-inf")
-        exit_code_lower.range_end = -1
-        exit_code_lower.error_level = StdioErrorLevel.FATAL
-        exit_code_high = ToolStdioExitCode()
-        exit_code_high.range_start = 1
-        exit_code_high.range_end = float("inf")
-        exit_code_lower.error_level = StdioErrorLevel.FATAL
-        return [exit_code_lower, exit_code_high], []
+        exit_codes = []
+
+        success_codes = sorted(set(self.tool_proxy._tool.tool.get("successCodes") or [0]))
+
+        last_range_start = None
+        last_range_end = None
+        last_success_code = None
+
+        for success_code in success_codes:
+            if last_success_code is not None and success_code == last_success_code + 1:
+                last_success_code = success_code
+                continue
+
+            exit_code = ToolStdioExitCode()
+            range_start = float("-inf")
+            if last_success_code is not None:
+                range_start = last_success_code + 1
+
+            exit_code.range_end = success_code - 1
+            exit_code.error_level = StdioErrorLevel.FATAL
+            exit_codes.append(exit_code)
+
+            last_success_code = success_code
+
+        exit_code = ToolStdioExitCode()
+        exit_code.range_start = last_success_code + 1
+        exit_code.range_end = float("inf")
+        exit_code.error_level = StdioErrorLevel.FATAL
+        exit_codes.append(exit_code)
+
+        return exit_codes
 
     def parse_interpreter(self):
         return None

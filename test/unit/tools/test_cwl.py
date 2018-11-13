@@ -74,6 +74,33 @@ def test_cores_min():
     assert bwa_parser.parse_cores_min() == 2
 
 
+def test_success_codes():
+    exit_success_parser = get_tool_source(_cwl_tool_path("v1.0/exit-success.cwl"))
+
+    stdio = exit_success_parser.parse_stdio()
+    assert len(stdio) == 2
+    stdio_0 = stdio[0]
+    assert stdio_0.range_start == float("-inf")
+    assert stdio_0.range_end == 0
+
+    stdio_1 = stdio[1]
+    assert stdio_1.range_start == 2
+    assert stdio_1.range_end == float("inf")
+
+    bwa_parser = get_tool_source(_cwl_tool_path("v1.0/bwa-mem-tool.cwl"))
+    stdio = bwa_parser.parse_stdio()
+
+    assert len(stdio) == 2
+    stdio_0 = stdio[0]
+    assert stdio_0.range_start == float("-inf")
+    assert stdio_0.range_end == -1
+
+    stdio_1 = stdio[1]
+    assert stdio_1.range_start == 1
+    assert stdio_1.range_end == float("inf")
+
+
+
 def test_serialize_deserialize_workflow_embed():
     # Test inherited hints and requirements from workflow -> tool
     # work here.
