@@ -121,6 +121,8 @@ GREEN_TESTS += [
     "valuefrom_secondexpr_ignored",
     "cl_basic_generation",
     "wf_two_inputfiles_namecollision",
+    "directory_input_docker",
+    "input_file_literal",
 ]
 
 
