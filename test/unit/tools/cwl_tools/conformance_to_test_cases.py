@@ -30,8 +30,6 @@ ${cwl_test_def}
 ''')
 
 RED_TESTS = {
-    # Required:
-    "expr_reference_self_noinput": ":1:1: Syntax error in parameter reference 'self.basename': self is not defined. This could be due to using Javascript code without specifying InlineJavascriptRequirement.",
     # NON-required:
     "wf_scatter_two_nested_crossproduct": "cross product not implemented",
     "wf_scatter_two_dotproduct": "AssertionError: Unimplemented scatter type [flat_crossproduct]",
@@ -139,6 +137,8 @@ GREEN_TESTS += [
     "valuefrom_constant_overrides_inputs",
     "wf_step_connect_undeclared_param",
     "wf_step_access_undeclared_param",
+    "expr_reference_self_noinput",
+    "directory_output",
 ]
  
 
