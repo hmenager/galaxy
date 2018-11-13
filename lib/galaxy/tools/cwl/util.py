@@ -365,7 +365,7 @@ def output_to_cwl_json(
             element["object"]["history_content_type"],
             element["object"]["id"],
         )
-        return output_to_cwl_json(element_output, get_metadata, get_dataset, get_extra_files)
+        return output_to_cwl_json(element_output, get_metadata, get_dataset, get_extra_files, pseduo_location=pseduo_location)
 
     output_metadata = get_metadata(galaxy_output.history_content_type, galaxy_output.history_content_id)
 
