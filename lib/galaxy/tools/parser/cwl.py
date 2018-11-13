@@ -130,7 +130,7 @@ class CwlToolSource(ToolSource):
         exit_code.error_level = StdioErrorLevel.FATAL
         exit_codes.append(exit_code)
 
-        return exit_codes
+        return exit_codes, []
 
     def parse_interpreter(self):
         return None
