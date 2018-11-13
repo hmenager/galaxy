@@ -260,6 +260,7 @@ class WorkflowContentsManager(UsesAnnotations):
         workflow_directory = None
         workflow_path = None
 
+        object_id = as_dict.get("object_id", None)
         if as_dict.get("src", None) == "from_path":
             if not trans.user_is_admin:
                 raise exceptions.AdminRequiredException()
@@ -271,8 +272,9 @@ class WorkflowContentsManager(UsesAnnotations):
 
         workflow_class = as_dict.get("class", None)
         if workflow_class is None and "$graph" in as_dict:
-            object_id = as_dict.get("object_id", "main")
+            object_id = object_id or "main"
             graph = as_dict["$graph"]
+            target_object = None
             if isinstance(graph, dict):
                 target_object = graph.get(object_id)
             else:
@@ -294,6 +296,8 @@ class WorkflowContentsManager(UsesAnnotations):
         elif workflow_class == "Workflow":
             from galaxy.tools.cwl import workflow_proxy
             # TODO: consume and use object_id...
+            if object_id:
+                workflow_path += "#" + object_id
             wf_proxy = workflow_proxy(workflow_path)
             tool_reference_proxies = wf_proxy.tool_reference_proxies()
             for tool_reference_proxy in tool_reference_proxies:
