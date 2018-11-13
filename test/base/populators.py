@@ -321,11 +321,10 @@ class CwlPopulator(object):
                 if upload_via == "path":
                     # TODO: basename?
                     payload = self.dataset_populator.upload_payload(
-                        history_id, 'file://%s' % path, ext="tar",
+                        history_id, 'file://%s' % path, ext="tar", auto_decompress=False
                     )
                 else:
                     raise NotImplementedError()
-
                 create_response = self.dataset_populator._post("tools", data=payload)
                 assert create_response.status_code == 200
 
