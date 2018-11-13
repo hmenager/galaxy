@@ -99,31 +99,33 @@ def galactic_job_json(
     datasets = []
     dataset_collections = []
 
-    def upload_file(file_path, secondary_files, **kwargs):
-        file_path = abs_path_or_uri(file_path, test_data_directory)
-        target = FileUploadTarget(file_path, secondary_files, **kwargs)
-        upload_response = upload_func(target)
+    def response_to_hda(target, upload_response):
         dataset = upload_response["outputs"][0]
         datasets.append((dataset, target))
         dataset_id = dataset["id"]
         return {"src": "hda", "id": dataset_id}
+
+    def upload_file(file_path, secondary_files, **kwargs):
+        file_path = abs_path_or_uri(file_path, test_data_directory)
+        target = FileUploadTarget(file_path, secondary_files, **kwargs)
+        upload_response = upload_func(target)
+        return response_to_hda(target, upload_response)
+
+    def upload_file_literal(contents):
+        target = FileLiteralTarget(contents)
+        upload_response = upload_func(target)
+        return response_to_hda(target, upload_response)
 
     def upload_tar(file_path):
         file_path = abs_path_or_uri(file_path, test_data_directory)
         target = DirectoryUploadTarget(file_path)
         upload_response = upload_func(target)
-        dataset = upload_response["outputs"][0]
-        datasets.append((dataset, target))
-        dataset_id = dataset["id"]
-        return {"src": "hda", "id": dataset_id}
+        return response_to_hda(target, upload_response)
 
     def upload_object(the_object):
         target = ObjectUploadTarget(the_object)
         upload_response = upload_func(target)
-        dataset = upload_response["outputs"][0]
-        datasets.append((dataset, target))
-        dataset_id = dataset["id"]
-        return {"src": "hda", "id": dataset_id}
+        return response_to_hda(target, upload_response)
 
     def replacement_item(value, force_to_file=False):
         is_dict = isinstance(value, dict)
@@ -159,6 +161,10 @@ def galactic_job_json(
     def replacement_file(value):
         file_path = value.get("location", None) or value.get("path", None)
         if file_path is None:
+            contents = value.get("contents", None)
+            if contents is not None:
+                return upload_file_literal(contents)
+
             return value
 
         filetype = value.get('filetype', None)
@@ -273,6 +279,16 @@ def _ensure_file_exists(file_path):
             os.getcwd(),
         )
         raise Exception(message)
+
+
+@python_2_unicode_compatible
+class FileLiteralTarget(object):
+
+    def __init__(self, contents, **kwargs):
+        self.contents = contents
+
+    def __str__(self):
+        return "FileLiteralTarget[path=%s] with %s" % (self.path, self.properties)
 
 
 @python_2_unicode_compatible

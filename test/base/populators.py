@@ -26,6 +26,7 @@ from six import StringIO
 
 from galaxy.tools.verify.test_data import TestDataResolver
 from galaxy.tools.cwl.util import (
+    FileLiteralTarget,
     FileUploadTarget,
     DirectoryUploadTarget,
     download_output,
@@ -313,6 +314,17 @@ class CwlPopulator(object):
                     file_type="auto",
                     name=name,
                     auto_decompress=False,
+                    extra_inputs=extra_inputs,
+                ).json()
+            elif isinstance(upload_target, FileLiteralTarget):
+                extra_inputs = dict()
+                return self.dataset_populator.new_dataset_request(
+                    history_id=history_id,
+                    content=upload_target.contents,
+                    file_type="auto",
+                    name="filex",
+                    auto_decompress=False,
+                    to_posix_lines=False,
                     extra_inputs=extra_inputs,
                 ).json()
             elif isinstance(upload_target, DirectoryUploadTarget):
