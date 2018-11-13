@@ -31,7 +31,6 @@ ${cwl_test_def}
 
 RED_TESTS = {
     # Required:
-    "directory_output": "regression: the `inf` field is not valid because Expected class 'File' but this is 'Directory'",
     "expr_reference_self_noinput": ":1:1: Syntax error in parameter reference 'self.basename': self is not defined. This could be due to using Javascript code without specifying InlineJavascriptRequirement.",
     # NON-required:
     "wf_scatter_two_nested_crossproduct": "cross product not implemented",
@@ -129,8 +128,19 @@ GREEN_TESTS += [
     "hints_import",
     "default_path_notfound_warning",
     "wf_compound_doc",
+    "shelldir_notinterpreted",
+    "fileliteral_input_docker",
+    "outputbinding_glob_sorted",
+    "booleanflags_cl_noinputbinding",
+    "outputbinding_glob_sorted",
+    "success_codes",
+    "cl_empty_array_input",
+    "resreq_step_overrides_wf",
+    "valuefrom_constant_overrides_inputs",
+    "wf_step_connect_undeclared_param",
+    "wf_step_access_undeclared_param",
 ]
-
+ 
 
 def main():
     version = "v1.0"
