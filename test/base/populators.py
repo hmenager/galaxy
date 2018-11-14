@@ -26,10 +26,12 @@ from six import StringIO
 
 from galaxy.tools.verify.test_data import TestDataResolver
 from galaxy.tools.cwl.util import (
+    FileLiteralTarget,
     FileUploadTarget,
     DirectoryUploadTarget,
     download_output,
     galactic_job_json,
+    guess_artifact_type,
     invocation_to_output,
     output_to_cwl_json,
     tool_response_to_output,
@@ -40,6 +42,7 @@ from . import api_asserts
 
 
 CWL_TOOL_DIRECTORY = os.path.join(galaxy_root_path, "test", "functional", "tools", "cwl_tools")
+LOAD_TOOLS_FROM_PATH = True
 
 # Simple workflow that takes an input and call cat wrapper on it.
 workflow_str = unicodify(resource_string(__name__, "data/test_workflow_1.ga"))
@@ -210,10 +213,11 @@ class CwlRun(object):
             pseduo_location=True,
         )
         if download_folder:
-            download_path = os.path.join(download_folder, output["basename"])
-            download_output(galaxy_output, get_metadata, get_dataset, get_extra_files, download_path)
-            output["path"] = download_path
-            output["location"] = "file://%s" % download_path 
+            if isinstance(output, dict) and "basename" in output:
+                download_path = os.path.join(download_folder, output["basename"])
+                download_output(galaxy_output, get_metadata, get_dataset, get_extra_files, download_path)
+                output["path"] = download_path
+                output["location"] = "file://%s" % download_path
         return output
         
 
@@ -315,17 +319,27 @@ class CwlPopulator(object):
                     auto_decompress=False,
                     extra_inputs=extra_inputs,
                 ).json()
+            elif isinstance(upload_target, FileLiteralTarget):
+                extra_inputs = dict()
+                return self.dataset_populator.new_dataset_request(
+                    history_id=history_id,
+                    content=upload_target.contents,
+                    file_type="auto",
+                    name="filex",
+                    auto_decompress=False,
+                    to_posix_lines=False,
+                    extra_inputs=extra_inputs,
+                ).json()
             elif isinstance(upload_target, DirectoryUploadTarget):
                 path = upload_target.tar_path
 
                 if upload_via == "path":
                     # TODO: basename?
                     payload = self.dataset_populator.upload_payload(
-                        history_id, 'file://%s' % path, ext="tar",
+                        history_id, 'file://%s' % path, ext="tar", auto_decompress=False
                     )
                 else:
                     raise NotImplementedError()
-
                 create_response = self.dataset_populator._post("tools", data=payload)
                 assert create_response.status_code == 200
 
@@ -370,19 +384,34 @@ class CwlPopulator(object):
             tool_hash = None
 
             if os.path.exists(tool_id):
-                # Assume it is a file not a tool_id.
-                with open(tool_id, "r") as f:
-                    representation = yaml.load(f)
-                    if "id" not in representation:
-                        representation["id"] = os.path.splitext(os.path.basename(tool_id))[0]
-                        tool_directory = os.path.abspath(os.path.dirname(tool_id))
+                raw_tool_id = os.path.basename(tool_id)
+                index = self.dataset_populator._get("tools", data=dict(in_panel=False))
+                tools = index.json()
+                # In panels by default, so flatten out sections...
+                tool_ids = [itemgetter("id")(_) for _ in tools]
+                if raw_tool_id in tool_ids:
+                    galaxy_tool_id = raw_tool_id
+                    tool_hash = None
+                else:
+                    # Assume it is a file not a tool_id.
+                    if LOAD_TOOLS_FROM_PATH:
+                        dynamic_tool = self.dataset_populator.create_tool_from_path(tool_id)
+                    else:
+                        with open(tool_id, "r") as f:
+                            representation = yaml.load(f)
+                        if "id" not in representation:
+                            # TODO: following line doesn't work.
+                            representation["id"] = os.path.splitext(os.path.basename(tool_id))[0]
+                            tool_directory = os.path.abspath(os.path.dirname(tool_id))
 
-                    dynamic_tool = self.dataset_populator.create_tool(representation, tool_directory=tool_directory)
+                        dynamic_tool = self.dataset_populator.create_tool(representation, tool_directory=tool_directory)
+
                     tool_id = dynamic_tool["tool_id"]
                     tool_hash = dynamic_tool["tool_hash"]
                     assert tool_id, dynamic_tool
+                    galaxy_tool_id = None
 
-            run_response = self.dataset_populator.run_tool(None, job_as_dict, history_id, inputs_representation="cwl", assert_ok=assert_ok, tool_hash=tool_hash)
+            run_response = self.dataset_populator.run_tool(galaxy_tool_id, job_as_dict, history_id, inputs_representation="cwl", assert_ok=assert_ok, tool_hash=tool_hash)
             run_object = CwlToolRun(self.dataset_populator, history_id, run_response)
             if assert_ok:
                 try:
@@ -450,23 +479,10 @@ class CwlPopulator(object):
             raise
 
     def run_cwl_job(self, tool, job):
-        tool_or_workflow = self.guess_artifact_type(tool)
+        tool_or_workflow = guess_artifact_type(tool)
         run = self.run_workflow_job(tool, job, tool_or_workflow=tool_or_workflow)
         assert run.history_id
         return run
-
-    def guess_artifact_type(self, path):
-        # TODO: handle IDs within files and use galaxy-lib functionality for this.
-        tool_or_workflow = "workflow"
-        try:
-            with open(path, "r") as f:
-                artifact = yaml.load(f)
-
-            tool_or_workflow = "tool" if artifact["class"] != "Workflow" else "workflow"
-
-        except Exception:
-            print("Failed to guess artifact type for [%s] - assuming worklfow" % path)
-        return tool_or_workflow
 
     def run_workflow_job(self, workflow_path, job_path, history_id=None, tool_or_workflow="workflow"):
         if history_id is None:
@@ -589,6 +605,15 @@ class BaseDatasetPopulator(object):
     def cancel_job(self, job_id):
         return self._delete("jobs/%s" % job_id)
 
+    def create_tool_from_path(self, tool_path):
+        tool_directory = os.path.dirname(os.path.abspath(tool_path))
+        payload = dict(
+            src="from_path",
+            path=tool_path,
+            tool_directory=tool_directory,
+        )
+        return self._create_tool_raw(payload)
+
     def create_tool(self, representation, tool_directory=None):
         if isinstance(representation, dict):
             representation = json.dumps(representation)
@@ -596,6 +621,9 @@ class BaseDatasetPopulator(object):
             representation=representation,
             tool_directory=tool_directory,
         )
+        return self._create_tool_raw(payload)
+
+    def _create_tool_raw(self, payload):
         try:
             create_response = self._post("dynamic_tools", data=payload, admin=True)
         except TypeError:

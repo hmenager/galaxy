@@ -100,47 +100,6 @@ def _possible_uri_to_path(location):
     return path
 
 
-class FileDescription(object):
-    pass
-
-
-class PathFileDescription(object):
-
-    def __init__(self, path):
-        self.path = path
-
-    def write_to(self, destination):
-        # TODO: Move if we can be sure this is in the working directory for instance...
-        shutil.copy(self.path, destination)
-
-
-class LiteralFileDescription(object):
-
-    def __init__(self, content):
-        self.content = content
-
-    def write_to(self, destination):
-        with open(destination, "wb") as f:
-            f.write(self.content.encode("UTF-8"))
-
-
-def _possible_uri_to_path(location):
-    if location.startswith("file://"):
-        path = ref_resolver.uri_file_path(location)
-    else:
-        path = location
-    return path
-
-
-def file_dict_to_description(file_dict):
-    assert file_dict["class"] == "File", file_dict
-    location = file_dict["location"]
-    if location.startswith("_:"):
-        return LiteralFileDescription(file_dict["contents"])
-    else:
-        return PathFileDescription(_possible_uri_to_path(location))
-
-
 def handle_outputs(job_directory=None):
     # Relocate dynamically collected files to pre-determined locations
     # registered with ToolOutput objects via from_work_dir handling.
@@ -251,7 +210,9 @@ def handle_outputs(job_directory=None):
             "ext": "expression.json",
         }
 
+    handled_outputs = []
     for output_name, output in outputs.items():
+        handled_outputs.append(output_name)
         if isinstance(output, dict) and "location" in output:
             handle_known_output(output, output_name, output_name)
         elif isinstance(output, dict):
@@ -278,6 +239,11 @@ def handle_outputs(job_directory=None):
             provided_metadata[output_name] = {"elements": elements}
         else:
             handle_known_output_json(output, output_name)
+
+    for output_instance in job_proxy._tool_proxy.output_instances():
+        output_name = output_instance.name
+        if output_name not in handled_outputs:
+            handle_known_output_json(None, output_name)
 
     with open("galaxy.json", "w") as f:
         json.dump(provided_metadata, f)

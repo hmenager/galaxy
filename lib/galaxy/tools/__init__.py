@@ -291,7 +291,16 @@ class ToolBox(BaseGalaxyToolBox):
         )
         if dynamic_tool.tool_directory:
             get_source_kwds["tool_directory"] = dynamic_tool.tool_directory
-        tool_source = get_tool_source_from_representation(**get_source_kwds)
+        if dynamic_tool.tool_path:
+            config_file = dynamic_tool.tool_path
+            tool_source = get_tool_source(
+                config_file,
+                enable_beta_formats=getattr(self.app.config, "enable_beta_tool_formats", True),
+                tool_location_fetcher=self.tool_location_fetcher,
+                strict_cwl_validation=getattr(self.app.config, "strict_cwl_validation", True),
+            )
+        else:
+            tool_source = get_tool_source_from_representation(**get_source_kwds)
         kwds["dynamic"] = True
         tool = self._create_tool_from_source(tool_source, **kwds)
         if dynamic_tool.tool_hash:
@@ -809,6 +818,8 @@ class Tool(Dictifiable):
         self.__parse_trackster_conf(tool_source)
         # Record macro paths so we can reload a tool if any of its macro has changes
         self._macro_paths = tool_source.macro_paths()
+
+        self.cores_min = tool_source.parse_cores_min()
 
     def __parse_legacy_features(self, tool_source):
         self.code_namespace = dict()
@@ -2437,32 +2448,6 @@ class CwlCommandBindingTool(Tool):
 
         # prevent empty string
         input_json = {k:v for k, v in input_json.iteritems() if v != ''}
-
-        # map tar file to 'Directory' type
-        for k, v in input_json.iteritems():
-            if isinstance(v, dict) and v.get('class') == 'File' and v.get('nameext') == '.tar':
-                print("CWL-IS: tar files uploaded in Galaxy are interpreted as 'Directory'.")
-
-                tar_file_location = v['location']
-                directory_name = v['nameroot']
-
-                tmp_dir = os.path.join('/tmp', str(uuid.uuid4()))
-                directory_location = os.path.join(tmp_dir, directory_name)
-
-                os.makedirs(tmp_dir)
-
-                bkp_cwd = os.getcwd(); os.chdir(tmp_dir)
-                tar = tarfile.open(tar_file_location); tar.extractall(); tar.close()
-                os.chdir(bkp_cwd)
-
-
-                v['class'] = 'Directory'
-                v['location'] = directory_location
-                v['nameext'] = 'None'
-                v['nameroot'] = 'example'
-                v['basename'] = 'example'
-                #v['size'] = 
-
 
         cwl_job_proxy = self._cwl_tool_proxy.job_proxy(
             input_json,

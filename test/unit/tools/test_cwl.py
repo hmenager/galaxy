@@ -51,11 +51,8 @@ def test_tool_source_records():
 def test_serialize_deserialize():
     path = _cwl_tool_path("v1.0/cat5-tool.cwl")
     tool = tool_proxy(path)
-    print("before....")
     print(tool._tool.tool)
-    print("converting to")
     rep = tool.to_persistent_representation()
-    print("converted")
     tool = tool_proxy_from_persistent_representation(rep)
     print(tool)
     tool.job_proxy({"file1": "/moo"}, {})
@@ -67,6 +64,94 @@ def test_serialize_deserialize():
         import json
         tool_object = json.loads(json.dumps(tool_object))
     tool = to_cwl_tool_object(tool_object=tool_object)
+
+
+def test_job_proxy():
+    bwa_parser = get_tool_source(_cwl_tool_path("v1.0/bwa-mem-tool.cwl"))
+    bwa_inputs = {
+        "reference": {
+            "class": "File",
+            "location": _cwl_tool_path("v1.0/chr20.fa"),
+            "size": 123,
+            "checksum": "sha1$hash"
+        },
+        "reads": [
+            {
+                "class": "File",
+                "location": _cwl_tool_path("v1.0/example_human_Illumina.pe_1.fastq")
+            },
+            {
+                "class": "File",
+                "location": _cwl_tool_path("v1.0/example_human_Illumina.pe_2.fastq")
+            }
+        ],
+        "min_std_max_min": [
+            1,
+            2,
+            3,
+            4
+        ],
+        "minimum_seed_length": 3
+    }
+    bwa_proxy = bwa_parser.tool_proxy
+    bwa_id = bwa_parser.parse_id()
+
+    job_proxy = bwa_proxy.job_proxy(
+        bwa_inputs,
+        {},
+        "/",
+    )
+
+    cmd = job_proxy.command_line
+    print(cmd)
+
+    bind_parser = get_tool_source(_cwl_tool_path("v1.0/binding-test.cwl"))
+    binding_proxy = bind_parser.tool_proxy
+    binding_id = bind_parser.parse_id()
+
+    job_proxy = binding_proxy.job_proxy(
+        bwa_inputs,
+        {},
+        "/",
+    )
+
+    cmd = job_proxy.command_line
+    assert bwa_id != binding_id, bwa_ida_id
+
+
+def test_cores_min():
+    sort_parser = get_tool_source(_cwl_tool_path("v1.0/sorttool.cwl"))
+    bwa_parser = get_tool_source(_cwl_tool_path("v1.0/bwa-mem-tool.cwl"))
+
+    assert sort_parser.parse_cores_min() == 1
+    assert bwa_parser.parse_cores_min() == 2
+
+
+def test_success_codes():
+    exit_success_parser = get_tool_source(_cwl_tool_path("v1.0/exit-success.cwl"))
+
+    stdio, _ = exit_success_parser.parse_stdio()
+    assert len(stdio) == 2
+    stdio_0 = stdio[0]
+    assert stdio_0.range_start == float("-inf")
+    assert stdio_0.range_end == 0
+
+    stdio_1 = stdio[1]
+    assert stdio_1.range_start == 2
+    assert stdio_1.range_end == float("inf")
+
+    bwa_parser = get_tool_source(_cwl_tool_path("v1.0/bwa-mem-tool.cwl"))
+    stdio, _ = bwa_parser.parse_stdio()
+
+    assert len(stdio) == 2
+    stdio_0 = stdio[0]
+    assert stdio_0.range_start == float("-inf")
+    assert stdio_0.range_end == -1
+
+    stdio_1 = stdio[1]
+    assert stdio_1.range_start == 1
+    assert stdio_1.range_end == float("inf")
+
 
 
 def test_serialize_deserialize_workflow_embed():
@@ -267,18 +352,24 @@ def test_workflow_input_without_source():
     assert inputs[2].get("value_from")
 
 
+def test_workflow_input_default():
+    version = "v1.0"
+    proxy = workflow_proxy(_cwl_tool_path("%s/pass-unconnected.cwl" % version))
+    galaxy_workflow_dict = proxy.to_dict()
+    assert len(galaxy_workflow_dict["steps"]) == 3
+
+    tool_step = galaxy_workflow_dict["steps"][2]
+
+    assert "inputs" in tool_step
+    inputs = tool_step["inputs"]
+    assert len(inputs) == 2, inputs
+    assert inputs[1]
+
+
 def test_search_workflow():
     proxy = workflow_proxy(_cwl_tool_path("v1.0/search.cwl#main"))
     galaxy_workflow_dict = proxy.to_dict()
     assert len(galaxy_workflow_dict["steps"]) == 5
-    print("======")
-    for i, step in galaxy_workflow_dict["steps"].items():
-        print(str(i) + ":" + step["label"])
-        print(step["input_connections"])
-
-    print("======")
-    print galaxy_workflow_dict
-    # assert False
 
 
 def test_workflow_simple_optional_input():
@@ -336,6 +427,21 @@ def test_load_proxy_bwa_mem():
     assert tool_id == "bwa-mem-tool", tool_id
     _inputs(tool_source)
     # TODO: test repeat generated...
+
+
+def test_representation_id():
+    import yaml
+    cat3 = _cwl_tool_path("v1.0/cat3-tool.cwl")
+    with open(cat3, "r") as f:
+        representation = yaml.load(f)
+        representation["id"] = "my-cool-id"
+
+        proxy = tool_proxy(tool_object=representation, tool_directory="/")
+        tool_id = proxy.galaxy_id()
+        assert tool_id == "my-cool-id", tool_id
+        id_proxy = tool_proxy_from_persistent_representation(proxy.to_persistent_representation())
+        tool_id = id_proxy.galaxy_id()
+        # assert tool_id == "my-cool-id", tool_id
 
 
 def test_env_tool1():

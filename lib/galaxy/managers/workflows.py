@@ -237,6 +237,35 @@ class WorkflowsManager(object):
 CreatedWorkflow = namedtuple("CreatedWorkflow", ["stored_workflow", "workflow", "missing_tools"])
 
 
+def artifact_class(trans, as_dict):
+    object_id = as_dict.get("object_id", None)
+    if as_dict.get("src", None) == "from_path":
+        if trans and not trans.user_is_admin:
+            raise exceptions.AdminRequiredException()
+
+        workflow_path = as_dict.get("path")
+        with open(workflow_path, "r") as f:
+            as_dict = ordered_load(f)
+
+    artifact_class = as_dict.get("class", None)
+    if artifact_class is None and "$graph" in as_dict:
+        object_id = object_id or "main"
+        graph = as_dict["$graph"]
+        target_object = None
+        if isinstance(graph, dict):
+            target_object = graph.get(object_id)
+        else:
+            for item in graph:
+                found_id = item.get("id")
+                if found_id == object_id or found_id == "#" + object_id:
+                    target_object = item
+
+        if target_object and target_object.get("class"):
+            artifact_class = target_object["class"]
+
+    return artifact_class, as_dict, object_id
+
+
 class WorkflowContentsManager(UsesAnnotations):
 
     def __init__(self, app):
@@ -265,23 +294,9 @@ class WorkflowContentsManager(UsesAnnotations):
                 raise exceptions.AdminRequiredException()
 
             workflow_path = as_dict.get("path")
-            with open(workflow_path, "r") as f:
-                as_dict = ordered_load(f)
             workflow_directory = os.path.normpath(os.path.dirname(workflow_path))
 
-        workflow_class = as_dict.get("class", None)
-        if workflow_class is None and "$graph" in as_dict:
-            object_id = as_dict.get("object_id", "main")
-            graph = as_dict["$graph"]
-            if isinstance(graph, dict):
-                target_object = graph.get(object_id)
-            else:
-                for item in graph:
-                    if item.get("id") == object_id:
-                        target_object = item
-            if target_object and target_object.get("class"):
-                workflow_class = target_object["class"]
-
+        workflow_class, as_dict, object_id = artifact_class(trans, as_dict)
         if workflow_class == "GalaxyWorkflow" or "yaml_content" in as_dict:
             if not self.app.config.enable_beta_workflow_format:
                 raise exceptions.ConfigDoesNotAllowException("Format2 workflows not enabled.")
@@ -294,12 +309,14 @@ class WorkflowContentsManager(UsesAnnotations):
         elif workflow_class == "Workflow":
             from galaxy.tools.cwl import workflow_proxy
             # TODO: consume and use object_id...
+            if object_id:
+                workflow_path += "#" + object_id
             wf_proxy = workflow_proxy(workflow_path)
             tool_reference_proxies = wf_proxy.tool_reference_proxies()
             for tool_reference_proxy in tool_reference_proxies:
                 # TODO: Namespace IDS in workflows.
                 representation = tool_reference_proxy.to_persistent_representation()
-                self.app.dynamic_tool_manager.create_tool({
+                self.app.dynamic_tool_manager.create_tool(trans, {
                     "representation": representation,
                 }, allow_load=True)
             as_dict = wf_proxy.to_dict()
@@ -321,23 +338,15 @@ class WorkflowContentsManager(UsesAnnotations):
         # Put parameters in workflow mode
         trans.workflow_building_mode = workflow_building_modes.ENABLED
 
-        if data and "src" in data and data["src"] == "from_path":
-            from galaxy.tools.cwl import workflow_proxy
-            wf_proxy = workflow_proxy(data["path"])
-            tool_reference_proxies = wf_proxy.tool_reference_proxies()
-            for tool_reference_proxy in tool_reference_proxies:
-                # TODO: Namespace IDS in workflows.
-                representation = tool_reference_proxy.to_persistent_representation()
-                self.app.dynamic_tool_manager.create_tool({
-                    "representation": representation,
-                }, allow_load=True)
-            data = wf_proxy.to_dict()
-
         # If there's a source, put it in the workflow name.
+        if 'name' not in data:
+            raise Exception("Invalid workflow format detected [%s]" % data)
+
+        workflow_input_name = data['name']
         if source:
-            name = "%s (imported from %s)" % (data['name'], source)
+            name = "%s (imported from %s)" % (workflow_input_name, source)
         else:
-            name = data['name']
+            name = workflow_input_name
         workflow, missing_tool_tups = self._workflow_from_raw_description(
             trans,
             raw_workflow_description,

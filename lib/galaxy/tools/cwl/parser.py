@@ -19,10 +19,11 @@ from galaxy.util import listify, safe_makedirs
 from galaxy.util.bunch import Bunch
 from galaxy.util.odict import odict
 from .cwltool_deps import (
+    beta_relaxed_fmt_check,
     ensure_cwltool_available,
     pathmapper,
     process,
-    beta_relaxed_fmt_check,
+    RuntimeContext,
 )
 from .representation import (
     field_to_field_type,
@@ -33,7 +34,7 @@ from .representation import (
     USE_STEP_PARAMETERS,
 )
 from .schema import non_strict_schema_loader, schema_loader
-from .util import SECONDARY_FILES_EXTRA_PREFIX
+from .util import guess_artifact_type, SECONDARY_FILES_EXTRA_PREFIX
 
 log = logging.getLogger(__name__)
 
@@ -244,8 +245,9 @@ class ToolProxy(object):
         raw_id = self.id
         tool_id = None
         # don't reduce "search.cwl#index" to search
-        if raw_id and "#" not in raw_id:
-            tool_id = os.path.splitext(os.path.basename(raw_id))[0]
+        if raw_id:
+            tool_id = os.path.basename(raw_id)
+            # tool_id = os.path.splitext(os.path.basename(raw_id))[0]
         if not tool_id:
             from galaxy.tools.hash import build_tool_hash
             tool_id = build_tool_hash(self.to_persistent_representation())
@@ -424,10 +426,7 @@ class JobProxy(object):
 
     def _ensure_cwl_job_initialized(self):
         if self._cwl_job is None:
-
-            self._cwl_job = next(self._tool_proxy._tool.job(
-                self._input_dict,
-                self._output_callback,
+            job_args = dict(
                 basedir=self._job_directory,
                 select_resources=self._select_resources,
                 outdir=os.path.join(self._job_directory, "working"),
@@ -435,6 +434,17 @@ class JobProxy(object):
                 stagedir=os.path.join(self._job_directory, "cwlstagedir"),
                 use_container=False,
                 beta_relaxed_fmt_check=beta_relaxed_fmt_check,
+            )
+            args = []
+            kwargs = {}
+            if RuntimeContext is not None:
+                args.append(RuntimeContext(job_args))
+            else:
+                kwargs = job_args
+            self._cwl_job = next(self._tool_proxy._tool.job(
+                self._input_dict,
+                self._output_callback,
+                *args, **kwargs
             ))
             self._is_command_line_job = hasattr(self._cwl_job, "command_line")
 
@@ -550,8 +560,12 @@ class JobProxy(object):
     def collect_outputs(self, tool_working_directory):
         if not self.is_command_line_job:
             cwl_job = self.cwl_job()
-            cwl_job.run(
-            )
+            if RuntimeContext is not None:
+                cwl_job.run(
+                    RuntimeContext({})
+                )
+            else:
+                cwl_job.run()
             if not self._ok:
                 raise Exception("Final process state not ok, [%s]" % self._process_status)
             return self._final_output
@@ -1245,6 +1259,38 @@ class OutputInstance(object):
         self.output_type = output_type
         self.path = path
         self.fields = fields
+
+
+def get_outputs(path):
+    tool_or_workflow = guess_artifact_type(path)
+    if tool_or_workflow == "tool":
+        from galaxy.tools.parser import get_tool_source
+        tool_source = get_tool_source(path)
+        output_datasets, _ = tool_source.parse_outputs(None)
+        outputs = [ToolOutput(o) for o in output_datasets.values()]
+        return outputs
+    else:
+        workflow = workflow_proxy(path, strict_cwl_validation=False)
+        return [CwlWorkflowOutput(label) for label in workflow.output_labels]
+
+
+# Lighter-weight variant of Planemo runnable outputs.
+class CwlWorkflowOutput(object):
+
+    def __init__(self, label):
+        self._label = label
+
+    def get_id(self):
+        return self._label
+
+
+class ToolOutput(object):
+
+    def __init__(self, tool_output):
+        self._tool_output = tool_output
+
+    def get_id(self):
+        return self._tool_output.name
 
 
 __all__ = (
