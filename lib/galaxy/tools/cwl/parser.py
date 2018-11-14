@@ -560,8 +560,12 @@ class JobProxy(object):
     def collect_outputs(self, tool_working_directory):
         if not self.is_command_line_job:
             cwl_job = self.cwl_job()
-            cwl_job.run(
-            )
+            if RuntimeContext is not None:
+                cwl_job.run(
+                    RuntimeContext({})
+                )
+            else:
+                cwl_job.run()
             if not self._ok:
                 raise Exception("Final process state not ok, [%s]" % self._process_status)
             return self._final_output
