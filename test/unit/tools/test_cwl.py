@@ -66,6 +66,59 @@ def test_serialize_deserialize():
     tool = to_cwl_tool_object(tool_object=tool_object)
 
 
+def test_job_proxy():
+    bwa_parser = get_tool_source(_cwl_tool_path("v1.0/bwa-mem-tool.cwl"))
+    bwa_inputs = {
+        "reference": {
+            "class": "File",
+            "location": _cwl_tool_path("v1.0/chr20.fa"),
+            "size": 123,
+            "checksum": "sha1$hash"
+        },
+        "reads": [
+            {
+                "class": "File",
+                "location": _cwl_tool_path("v1.0/example_human_Illumina.pe_1.fastq")
+            },
+            {
+                "class": "File",
+                "location": _cwl_tool_path("v1.0/example_human_Illumina.pe_2.fastq")
+            }
+        ],
+        "min_std_max_min": [
+            1,
+            2,
+            3,
+            4
+        ],
+        "minimum_seed_length": 3
+    }
+    bwa_proxy = bwa_parser.tool_proxy
+    bwa_id = bwa_parser.parse_id()
+
+    job_proxy = bwa_proxy.job_proxy(
+        bwa_inputs,
+        {},
+        "/",
+    )
+
+    cmd = job_proxy.command_line
+    print(cmd)
+
+    bind_parser = get_tool_source(_cwl_tool_path("v1.0/binding-test.cwl"))
+    binding_proxy = bind_parser.tool_proxy
+    binding_id = bind_parser.parse_id()
+
+    job_proxy = binding_proxy.job_proxy(
+        bwa_inputs,
+        {},
+        "/",
+    )
+
+    cmd = job_proxy.command_line
+    assert bwa_id != binding_id, bwa_ida_id
+
+
 def test_cores_min():
     sort_parser = get_tool_source(_cwl_tool_path("v1.0/sorttool.cwl"))
     bwa_parser = get_tool_source(_cwl_tool_path("v1.0/bwa-mem-tool.cwl"))
@@ -374,6 +427,21 @@ def test_load_proxy_bwa_mem():
     assert tool_id == "bwa-mem-tool", tool_id
     _inputs(tool_source)
     # TODO: test repeat generated...
+
+
+def test_representation_id():
+    import yaml
+    cat3 = _cwl_tool_path("v1.0/cat3-tool.cwl")
+    with open(cat3, "r") as f:
+        representation = yaml.load(f)
+        representation["id"] = "my-cool-id"
+
+        proxy = tool_proxy(tool_object=representation, tool_directory="/")
+        tool_id = proxy.galaxy_id()
+        assert tool_id == "my-cool-id", tool_id
+        id_proxy = tool_proxy_from_persistent_representation(proxy.to_persistent_representation())
+        tool_id = id_proxy.galaxy_id()
+        # assert tool_id == "my-cool-id", tool_id
 
 
 def test_env_tool1():

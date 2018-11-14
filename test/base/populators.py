@@ -41,6 +41,7 @@ from . import api_asserts
 
 
 CWL_TOOL_DIRECTORY = os.path.join(galaxy_root_path, "test", "functional", "tools", "cwl_tools")
+LOAD_TOOLS_FROM_PATH = True
 
 # Simple workflow that takes an input and call cat wrapper on it.
 workflow_str = unicodify(resource_string(__name__, "data/test_workflow_1.ga"))
@@ -382,16 +383,22 @@ class CwlPopulator(object):
 
             if os.path.exists(tool_id):
                 # Assume it is a file not a tool_id.
-                with open(tool_id, "r") as f:
-                    representation = yaml.load(f)
+                if LOAD_TOOLS_FROM_PATH:
+                    dynamic_tool = self.dataset_populator.create_tool_from_path(tool_id)
+                else:
+                    with open(tool_id, "r") as f:
+                        representation = yaml.load(f)
                     if "id" not in representation:
+                        # TODO: following line doesn't work.
                         representation["id"] = os.path.splitext(os.path.basename(tool_id))[0]
                         tool_directory = os.path.abspath(os.path.dirname(tool_id))
 
                     dynamic_tool = self.dataset_populator.create_tool(representation, tool_directory=tool_directory)
-                    tool_id = dynamic_tool["tool_id"]
-                    tool_hash = dynamic_tool["tool_hash"]
-                    assert tool_id, dynamic_tool
+
+                tool_id = dynamic_tool["tool_id"]
+                print("tool_id id %s" % tool_id)
+                tool_hash = dynamic_tool["tool_hash"]
+                assert tool_id, dynamic_tool
 
             run_response = self.dataset_populator.run_tool(None, job_as_dict, history_id, inputs_representation="cwl", assert_ok=assert_ok, tool_hash=tool_hash)
             run_object = CwlToolRun(self.dataset_populator, history_id, run_response)
@@ -600,6 +607,15 @@ class BaseDatasetPopulator(object):
     def cancel_job(self, job_id):
         return self._delete("jobs/%s" % job_id)
 
+    def create_tool_from_path(self, tool_path):
+        tool_directory = os.path.dirname(os.path.abspath(tool_path))
+        payload = dict(
+            src="from_path",
+            path=tool_path,
+            tool_directory=tool_directory,
+        )
+        return self._create_tool_raw(payload)
+
     def create_tool(self, representation, tool_directory=None):
         if isinstance(representation, dict):
             representation = json.dumps(representation)
@@ -607,6 +623,9 @@ class BaseDatasetPopulator(object):
             representation=representation,
             tool_directory=tool_directory,
         )
+        return self._create_tool_raw(payload)
+
+    def _create_tool_raw(self, payload):
         try:
             create_response = self._post("dynamic_tools", data=payload, admin=True)
         except TypeError:
