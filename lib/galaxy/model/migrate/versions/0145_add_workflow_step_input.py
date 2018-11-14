@@ -12,7 +12,7 @@ from galaxy.model.custom_types import JSONType
 log = logging.getLogger(__name__)
 metadata = MetaData()
 
-from_path_column = Column("from_path", Integer, nullable=True)
+from_path_column = Column("from_path", TEXT, nullable=True)
 
 
 def get_new_tables():
