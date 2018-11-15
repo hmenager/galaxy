@@ -202,6 +202,9 @@ class WorkflowModule(object):
         which describes configuration state). This (again unlike self.state) is
         currently always a `DefaultToolState` object.
 
+        If `step` is not `None`, it will be used to search for default values
+        defined in workflow input steps.
+
         If `step_updates` is `None`, this is likely for rendering the run form
         for instance and no runtime properties are available and state must be
         solely determined by the default runtime state described by the step.

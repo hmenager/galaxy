@@ -1016,8 +1016,6 @@ class WorkflowContentsManager(UsesAnnotations):
                     step_input.default_value = default
                     step_input.default_value_set = True
 
-                step.get_or_add_input(input_name)
-
         return module, step
 
     def __load_subworkflow_from_step_dict(self, trans, step_dict, subworkflow_id_map, **kwds):

@@ -51,7 +51,7 @@ def upgrade(migrate_engine):
     LegacyWorkflowStepConnection_table = Table("workflow_step_connection", metadata, autoload=True)
     for index in LegacyWorkflowStepConnection_table.indexes:
         index.drop()
-    LegacyWorkflowStepConnection_table.rename("workflow_step_connection_premigrate144")
+    LegacyWorkflowStepConnection_table.rename("workflow_step_connection_premigrate145")
     # Try to deregister that table to work around some caching problems it seems.
     LegacyWorkflowStepConnection_table.deregister()
     metadata._remove_table("workflow_step_connection", metadata.schema)
@@ -63,7 +63,7 @@ def upgrade(migrate_engine):
 
     insert_step_inputs_cmd = \
         "INSERT INTO workflow_step_input (workflow_step_id, name) " + \
-        "SELECT id, input_name FROM workflow_step_connection_premigrate144"
+        "SELECT id, input_name FROM workflow_step_connection_premigrate145"
 
     migrate_engine.execute(insert_step_inputs_cmd)
 
@@ -71,7 +71,7 @@ def upgrade(migrate_engine):
     insert_step_connections_cmd = \
         "INSERT INTO workflow_step_connection (output_step_id, input_step_input_id, output_name, input_subworkflow_step_id) " + \
         "SELECT wsc.output_step_id, wsi.id, wsc.output_name, wsc.input_subworkflow_step_id " + \
-        "FROM workflow_step_connection_premigrate144 as wsc left outer join workflow_step_input as wsi on wsc.input_step_id = wsi.workflow_step_id and wsc.input_name = wsi.name ORDER BY wsc.id"
+        "FROM workflow_step_connection_premigrate145 as wsc left outer join workflow_step_input as wsi on wsc.input_step_id = wsi.workflow_step_id and wsc.input_name = wsi.name ORDER BY wsc.id"
 
     migrate_engine.execute(insert_step_connections_cmd)
 
@@ -87,7 +87,7 @@ def downgrade(migrate_engine):
     metadata.reflect()
 
     # Drop new workflow invocation step and job association table and restore legacy data.
-    LegacyWorkflowStepConnection_table = Table("workflow_step_connection_premigrate144", metadata, autoload=True)
+    LegacyWorkflowStepConnection_table = Table("workflow_step_connection_premigrate145", metadata, autoload=True)
     LegacyWorkflowStepConnection_table.rename("workflow_step_connection")
 
 

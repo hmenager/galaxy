@@ -4091,7 +4091,6 @@ class WorkflowStep(RepresentById):
         if step_input is None:
             step_input = WorkflowStepInput(self)
             step_input.name = input_name
-            # self.inputs.append(step_input)
         return step_input
 
     def add_connection(self, input_name, output_name, output_step, input_subworkflow_step_index=None):
@@ -4108,10 +4107,7 @@ class WorkflowStep(RepresentById):
 
     @property
     def input_connections(self):
-        connections = []
-        for step_input in self.inputs:
-            for connection in step_input.connections:
-                connections.append(connection)
+        connections = [_ for step_input in self.inputs for _ in step_input.connections]
         return connections
 
     @property
@@ -4235,11 +4231,6 @@ class WorkflowStepInput(RepresentById):
 
         copied_step_input.connections = copy_list(self.connections)
         return copied_step_input
-
-    def log_str(self):
-        return "WorkflowStepInput[name=%s]" % (
-            self.name,
-        )
 
 
 class WorkflowStepConnection(RepresentById):

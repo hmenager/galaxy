@@ -483,8 +483,6 @@ class WorkflowStep(object):
         self.config = None
         self.label = None
 
-        self._input_connections_by_name = None
-
     def get_or_add_input(self, input_name):
         for step_input in self.inputs:
             if step_input.name == input_name:
@@ -498,10 +496,7 @@ class WorkflowStep(object):
 
     @property
     def input_connections(self):
-        connections = []
-        for step_input in self.inputs:
-            for connection in step_input.connections:
-                connections.append(connection)
+        connections = [_ for step_input in self.inputs for _ in step_input.connections]
         return connections
 
 
