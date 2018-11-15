@@ -314,10 +314,17 @@ class WorkflowsAPIController(BaseAPIController, UsesStoredWorkflowMixin, UsesAnn
             archive_file = payload.get('archive_file')
             archive_data = None
             if archive_source:
-                try:
-                    archive_data = requests.get(archive_source).text
-                except Exception:
-                    raise exceptions.MessageException("Failed to open URL '%s'." % escape(archive_source))
+                if archive_source.startswith("file://"):
+                    if not trans.user_is_admin:
+                        raise exceptions.AdminRequiredException()
+                    workflow_src = {"src": "from_path", "path": archive_source[len("file://"):]}
+                    payload["workflow"] = workflow_src
+                    return self.__api_import_new_workflow(trans, payload, **kwd)
+                else:
+                    try:
+                        archive_data = requests.get(archive_source).text
+                    except Exception:
+                        raise exceptions.MessageException("Failed to open URL '%s'." % escape(archive_source))
             elif hasattr(archive_file, 'file'):
                 uploaded_file = archive_file.file
                 uploaded_file_name = uploaded_file.name
