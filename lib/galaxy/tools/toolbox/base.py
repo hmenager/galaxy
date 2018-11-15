@@ -179,9 +179,15 @@ class AbstractToolBox(Dictifiable, ManagesIntegratedToolPanelMixin):
                                        config_elems=config_elems)
             self._dynamic_tool_confs.append(shed_tool_conf_dict)
 
-    def _init_dynamic_tools(self):
-        for dynamic_tool in self.app.dynamic_tool_manager.list_tools():
-            self.load_dynamic_tool(dynamic_tool)
+    def _get_tool_by_hash(self, tool_hash):
+        if tool_hash in self._tools_by_hash:
+            return self._tools_by_hash[tool_hash]
+
+        dynamic_tool = self.app.dynamic_tool_manager.get_tool_by_hash(tool_hash)
+        if dynamic_tool:
+            return self.load_dynamic_tool(dynamic_tool)
+
+        return None
 
     def load_dynamic_tool(self, dynamic_tool):
         if not dynamic_tool.active:
@@ -430,7 +436,7 @@ class AbstractToolBox(Dictifiable, ManagesIntegratedToolPanelMixin):
 
         if tool_id is None:
             if tool_hash is not None:
-                tool_id = self._tools_by_hash[tool_hash].id
+                tool_id = self._get_tool_by_hash(tool_hash).id
             if tool_id is None:
                 raise AssertionError("get_tool called with tool_id as None")
 
