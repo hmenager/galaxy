@@ -12,7 +12,7 @@ from bioblend import galaxy
 sys.path.insert(1, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, 'test')))
 sys.path.insert(1, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, 'lib')))
 
-from galaxy.tools.cwl.parser import get_outputs
+from galaxy.tool_util.cwl.parser import get_outputs
 from galaxy.version import VERSION
 
 from base.populators import (  # noqa: I100,I202

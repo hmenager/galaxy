@@ -13,7 +13,7 @@ from galaxy.util import safe_makedirs, string_as_bool
 from galaxy.util.bunch import Bunch
 from .util import set_basename_and_derived_properties
 
-from galaxy.util.none_like import NoneDataset
+from galaxy.model.none_like import NoneDataset
 from galaxy.util.object_wrapper import SafeStringWrapper
 
 log = logging.getLogger(__name__)
